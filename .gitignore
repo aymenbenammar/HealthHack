@@ -8,3 +8,4 @@ venv/
 *.sqlite3
 .DS_Store
 /resources/
+frontend/node_modules
