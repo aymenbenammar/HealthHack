@@ -1,178 +1,126 @@
 """
-Groq LLM client with support for plain text, images, and PDFs.
-
-Image handling
---------------
-Images are accepted as raw bytes (any common format: JPEG, PNG, WEBP, GIF).
-They are base64-encoded and forwarded as image_url blocks to a Groq vision model.
-
-PDF handling
-------------
-PDFs are processed in two stages:
-  1. Text extraction  – pypdf pulls all selectable text from every page.
-  2. Page rendering   – pymupdf renders every page to a PNG and passes them
-                        as images so scanned / image-heavy PDFs are still
-                        understood by the vision model.
-
-Both the extracted text and the page images are included in the same request,
-giving the model the richest possible view of the document.
+VLLM Client Module
+Handles communication with the Visual Language Model server.
+Provides methods for image processing, API requests, and response handling.
 """
 
+import requests
+import json
+from typing import Optional, List, Dict, Union
+from base64 import b64encode
+import logging
+import time
 import base64
-import io
-from typing import Any
-
-import fitz  # pymupdf
-import pypdf
+import traceback
+import os
 from groq import Groq
-
 from app.core.config import settings
-from app.schemas.llm import ChatResponse, Message, Role
+from openai import OpenAI
+from app.services.utils import split_pdf_to_images
+
+signatures = {
+    "JVBERi0": "application/pdf",
+    "R0lGODdh": "image/gif",
+    "R0lGODlh": "image/gif",
+    "iVBORw0KGgo": "image/png",
+    "/9j/": "image/jpg"
+};
+
+def detectMimeType(b64):
+    for s in signatures:
+        if s in b64:
+            return signatures[s]
+
+
+
+
 
 
 class GroqLLMClient:
-    def __init__(
-        self,
-        api_key: str | None = None,
-        text_model: str | None = None,
-        vision_model: str | None = None,
-    ) -> None:
-        self._client = Groq(api_key=api_key or settings.GROQ_API_KEY)
-        self._text_model = text_model or settings.GROQ_DEFAULT_TEXT_MODEL
-        self._vision_model = vision_model or settings.GROQ_DEFAULT_VISION_MODEL
+    """
+    High-level client that splits documents into images and calls the Groq VLM.
+    """
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    def __init__(self):
+        self.api_key = settings.GROQ_API_KEY
+        self.default_model = settings.GROQ_DEFAULT_VISION_MODEL
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(handler)
 
-    def chat(
-        self,
-        prompt: str,
-        *,
-        system_prompt: str | None = None,
-        history: list[Message] | None = None,
-        images: list[bytes] | None = None,
-        pdfs: list[bytes] | None = None,
-        model: str | None = None,
-    ) -> ChatResponse:
-        """Send a chat request, optionally including images and/or PDFs.
-
-        Parameters
-        ----------
-        prompt:        The user's text message.
-        system_prompt: Optional system-level instruction.
-        history:       Prior conversation turns (role + content pairs).
-        images:        Raw image bytes (JPEG / PNG / WEBP / GIF).
-        pdfs:          Raw PDF bytes.  Text and page renders are extracted
-                       automatically and appended to the user turn.
-        model:         Override the default model for this request.
+    def analyze_document(self, file_bytes: bytes, filename: str,prompt:str, model: str = None) -> dict:
         """
-        images = images or []
-        pdfs = pdfs or []
-        history = history or []
+        Split a PDF (or single image) into page images saved under resources/,
+        then send all pages to the Groq VLM in one request.
+        The output template from document_templates/antrag_approbation.json is
+        injected into the prompt so the VLM returns the expected output shape.
+        """
+        if model is None:
+            model = self.default_model
 
-        has_visuals = bool(images or pdfs)
-        resolved_model = model or (self._vision_model if has_visuals else self._text_model)
+        ext = os.path.splitext(filename)[1].lower()
 
-        messages: list[dict[str, Any]] = []
-
-        if system_prompt:
-            messages.append({"role": Role.system, "content": system_prompt})
-
-        for msg in history:
-            messages.append({"role": msg.role, "content": msg.content})
-
-        user_content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
-
-        # ---- PDFs -------------------------------------------------------
-        for pdf_bytes in pdfs:
-            text, page_images = self._process_pdf(pdf_bytes)
-            if text.strip():
-                user_content.append(
-                    {"type": "text", "text": f"[PDF extracted text]\n{text}"}
-                )
-            for img_b64 in page_images:
-                user_content.append(self._image_url_block(img_b64, "image/png"))
-
-        # ---- Standalone images ------------------------------------------
-        for img_bytes in images:
-            mime, b64 = self._encode_image(img_bytes)
-            user_content.append(self._image_url_block(b64, mime))
-
-        messages.append({"role": Role.user, "content": user_content})
-
-        response = self._client.chat.completions.create(
-            model=resolved_model,
-            messages=messages,  # type: ignore[arg-type]
-        )
-
-        choice = response.choices[0].message
-        usage = response.usage
-
-        return ChatResponse(
-            content=choice.content or "",
-            model=response.model,
-            prompt_tokens=usage.prompt_tokens,
-            completion_tokens=usage.completion_tokens,
-            total_tokens=usage.total_tokens,
-        )
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _process_pdf(self, pdf_bytes: bytes) -> tuple[str, list[str]]:
-        """Return (full_text, list_of_base64_page_pngs) for a PDF."""
-        text = self._extract_pdf_text(pdf_bytes)
-        page_images = self._render_pdf_pages(pdf_bytes)
-        return text, page_images
-
-    @staticmethod
-    def _extract_pdf_text(pdf_bytes: bytes) -> str:
-        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
-        parts: list[str] = []
-        for page_num, page in enumerate(reader.pages, start=1):
-            page_text = page.extract_text() or ""
-            if page_text.strip():
-                parts.append(f"--- Page {page_num} ---\n{page_text}")
-        return "\n\n".join(parts)
-
-    @staticmethod
-    def _render_pdf_pages(pdf_bytes: bytes, dpi: int = 150) -> list[str]:
-        """Render every PDF page to a PNG and return base64-encoded strings."""
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        b64_pages: list[str] = []
-        zoom = dpi / 72  # 72 DPI is PyMuPDF's default
-        matrix = fitz.Matrix(zoom, zoom)
-        for page in doc:
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
-            b64_pages.append(base64.b64encode(pix.tobytes("png")).decode())
-        doc.close()
-        return b64_pages
-
-    @staticmethod
-    def _encode_image(image_bytes: bytes) -> tuple[str, str]:
-        """Detect MIME type and return (mime_type, base64_string)."""
-        # Detect by magic bytes
-        if image_bytes[:3] == b"\xff\xd8\xff":
-            mime = "image/jpeg"
-        elif image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
-            mime = "image/png"
-        elif image_bytes[:6] in (b"GIF87a", b"GIF89a"):
-            mime = "image/gif"
-        elif image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
-            mime = "image/webp"
+        if ext == ".pdf":
+            base_name = os.path.splitext(filename)[0]
+            image_paths = split_pdf_to_images(file_bytes, base_name)
+            self.logger.info(f"PDF split into {len(image_paths)} page image(s)")
         else:
-            mime = "image/jpeg"  # safe fallback
-        return mime, base64.b64encode(image_bytes).decode()
+            # Save the image directly into resources/
+            os.makedirs("resources", exist_ok=True)
+            image_path = os.path.join("resources", filename)
+            with open(image_path, "wb") as f:
+                f.write(file_bytes)
+            image_paths = [image_path]
+            self.logger.info(f"Image saved to {image_path}")
 
-    @staticmethod
-    def _image_url_block(b64: str, mime: str) -> dict[str, Any]:
-        return {
-            "type": "image_url",
-            "image_url": {"url": f"data:{mime};base64,{b64}"},
-        }
+        # Encode every page image as base64
+        image_contents = []
+        for path in image_paths:
+            with open(path, "rb") as f:
+                img_data = base64.b64encode(f.read()).decode("utf-8")
+            mime = detectMimeType(img_data) or "image/png"
+            image_contents.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{img_data}"},
+            })
 
 
-# Module-level singleton — import and use directly
-llm_client = GroqLLMClient()
+        client = Groq(api_key=self.api_key)
+        self.logger.info(f"Calling Groq VLM ({model}) with {len(image_contents)} image(s)...")
+        completion = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}] + image_contents,
+                }
+            ],
+            temperature=0,
+            max_completion_tokens=4096,
+            top_p=1,
+            stream=False,
+        )
+
+        raw = completion.choices[0].message.content
+        self.logger.info(f"VLM response received ({len(raw)} chars)")
+
+        # Extract the JSON object by finding the outermost { ... }
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+        except (json.JSONDecodeError, ValueError):
+            result = {"result": raw}
+
+        # Save result to resources/
+        os.makedirs("resources", exist_ok=True)
+        base_name = os.path.splitext(filename)[0]
+        output_path = os.path.join("resources", f"{base_name}_result.json")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"Result saved to {output_path}")
+
+        return result
