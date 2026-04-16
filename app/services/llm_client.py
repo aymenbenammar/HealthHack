@@ -308,8 +308,8 @@ INSTRUCTIONS:
 - For apostille on EU/EEA documents (country_of_issue in AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK IS LI NO CH): use severity "warning" and add a bundesland_note.
 - For apostille on non-EU documents: severity must be "critical".
 - Fill "rule_compliance" with one entry per check (pass / fail / n/a).
-- "message" must be in German, user-facing, and actionable.
-- "tips" must be in German, concrete, and actionable (1–3 items, only for failed checks).
+- "message" must be in English, user-facing, and actionable.
+- "tips" must be in English, concrete, and actionable (1–3 items, only for failed checks).
 - Set "bundesland_note" if any result depends on the Bundesland; otherwise null.
 
 RETURN ONLY valid JSON — no markdown fences, no explanation:
@@ -372,6 +372,55 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
             "tips":            result.get("tips", []),
             "bundesland_note": result.get("bundesland_note", None),
         }
+
+    # ── Pass-3: cross-document name mismatch ──────────────────────────────────
+
+    def check_name_mismatch(self, resources_dir: str = "resources") -> list[dict]:
+        """
+        Scan every *_result.json under resources/ and compare full_name values.
+        Returns a list containing a single NAME_MISMATCH issue dict if more than
+        one distinct name is found, or an empty list if all names agree.
+        """
+        name_map: dict[str, dict] = {}   # normalized_name -> {original, docs:[doc_id, ...]}
+
+        if not os.path.isdir(resources_dir):
+            return []
+
+        for root, _, files in os.walk(resources_dir):
+            for fname in files:
+                if not fname.endswith("_result.json"):
+                    continue
+                path = os.path.join(root, fname)
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    name = (data.get("metadata") or {}).get("full_name")
+                    if not name or name.lower() in ("n/a", "null", "unknown", ""):
+                        continue
+                    doc_id = fname.replace("_result.json", "")
+                    key = name.strip().lower()
+                    if key not in name_map:
+                        name_map[key] = {"original_name": name, "found_in": []}
+                    name_map[key]["found_in"].append(doc_id)
+                except Exception as exc:
+                    self.logger.warning(f"Could not read {path} for name check: {exc}")
+
+        if len(name_map) <= 1:
+            return []
+
+        names_summary = {v["original_name"]: v["found_in"] for v in name_map.values()}
+        return [
+            {
+                "code": "NAME_MISMATCH",
+                "severity": "critical",
+                "message": (
+                    f"{len(name_map)} verschiedene Namen in den hochgeladenen Dokumenten gefunden. "
+                    "Bitte prüfen Sie, ob ein Namensänderungsdokument erforderlich ist."
+                ),
+                "field": "metadata.full_name",
+                "details": names_summary,
+            }
+        ]
 
     def analyze_document(self, file_bytes: bytes, filename: str,prompt:str, model: str = None) -> dict:
         """
@@ -459,5 +508,23 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         self.logger.info(f"Result saved to {output_path}")
+
+        # ── Pass 3: cross-document name mismatch ─────────────────────────────
+        cross_doc_issues = self.check_name_mismatch()
+
+        print("\n" + "="*60)
+        print("PASS 3 — CROSS-DOCUMENT NAME CHECK")
+        print("="*60)
+        if cross_doc_issues:
+            print(json.dumps(cross_doc_issues, ensure_ascii=False, indent=2))
+        else:
+            print("All document names match — no NAME_MISMATCH detected.")
+        print("="*60 + "\n")
+
+        result["cross_doc_issues"] = cross_doc_issues
+
+        # Re-save with cross-doc issues included
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
 
         return result
