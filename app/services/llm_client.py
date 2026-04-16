@@ -528,3 +528,126 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
             json.dump(result, f, ensure_ascii=False, indent=2)
 
         return result
+
+    def explain_document_guidelines(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        language: str = "English",
+        model: str = None,
+    ) -> dict:
+        """
+        Single-pass VLM analysis: generate a page-by-page to-do checklist
+        explaining how to fill in or prepare the document.
+        Returns: {"pages": [...]}
+        """
+        if model is None:
+            model = self.default_model
+
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == ".pdf":
+            base_name = os.path.splitext(filename)[0]
+            image_paths = split_pdf_to_images(file_bytes, base_name)
+            self.logger.info(f"Guidelines: PDF split into {len(image_paths)} page image(s)")
+        else:
+            os.makedirs("resources", exist_ok=True)
+            image_path = os.path.join("resources", filename)
+            with open(image_path, "wb") as f:
+                f.write(file_bytes)
+            image_paths = [image_path]
+
+        # Encode images and keep a per-page data-URI for the response
+        page_data_uris: list[str] = []
+        image_contents = []
+        for path in image_paths:
+            with open(path, "rb") as f:
+                raw = f.read()
+            img_data = base64.b64encode(raw).decode("utf-8")
+            mime = detectMimeType(img_data) or "image/png"
+            data_uri = f"data:{mime};base64,{img_data}"
+            page_data_uris.append(data_uri)
+            image_contents.append({
+                "type": "image_url",
+                "image_url": {"url": data_uri},
+            })
+
+        prompt = f"""You are an expert, empathetic bureaucratic assistant helping international doctors prepare German Approbation documents.
+Analyze the attached document and provide a stress-free, actionable explanation STRICTLY IN {language}.
+
+Goal: Make the checklist easy to follow and not overwhelming. The user should be able to work page-by-page.
+
+Output rules:
+- Do NOT include a summary.
+- Return ONLY valid JSON (no markdown, no code fences, no extra text).
+- Organize output by page number.
+- Each action item must have a required key "item".
+- Optional keys for non-obvious items: "important", "what_it_means", "where_to_find_it", "what_to_prepare".
+- For simple/obvious items (name, date of birth, address, phone, email, signature, today's date), include only "item".
+- Omit "important" if there is no deadline or critical note.
+- "where_to_find_it" must refer to real-world sources (letters, office notices, authority documents), not the form itself.
+- If a page requires no user action, return an empty "actions" array.
+
+Return JSON in exactly this shape:
+{{
+  "pages": [
+    {{
+      "page": 1,
+      "actions": [
+        {{
+          "item": "Fill in your full legal name"
+        }},
+        {{
+          "item": "Enter your LPA number",
+          "what_it_means": "Your identifier assigned by the state examination office (Landesprüfungsamt).",
+          "where_to_find_it": "Found on correspondence from the Landesprüfungsamt or on your exam results letter.",
+          "what_to_prepare": "Your latest letter from the exam office"
+        }},
+        {{
+          "item": "Submit the application before 31.05.2026",
+          "important": "Deadline: 31.05.2026",
+          "what_it_means": "Applications received after this date may not be processed in time."
+        }}
+      ]
+    }},
+    {{
+      "page": 2,
+      "actions": []
+    }}
+  ]
+}}"""
+
+        client = Groq(api_key=self.api_key)
+        self.logger.info(f"Guidelines: calling Groq VLM ({model}) with {len(image_contents)} image(s)...")
+        completion = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}] + image_contents,
+                }
+            ],
+            temperature=0,
+            max_completion_tokens=2048,
+            top_p=1,
+            stream=False,
+        )
+
+        raw = completion.choices[0].message.content
+        self.logger.info(f"Guidelines: VLM response received ({len(raw)} chars)")
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+        except (json.JSONDecodeError, ValueError):
+            result = {"pages": []}
+
+        # Embed the page image into each page object so the frontend
+        # can render pages without an extra round-trip.
+        if "pages" in result and isinstance(result["pages"], list):
+            for page_obj in result["pages"]:
+                idx = page_obj.get("page", 1) - 1
+                if 0 <= idx < len(page_data_uris):
+                    page_obj["image"] = page_data_uris[idx]
+
+        return result

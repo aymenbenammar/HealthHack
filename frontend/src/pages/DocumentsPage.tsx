@@ -235,7 +235,7 @@ const DocumentsPage: React.FC = () => {
                     borderBottom: '1px solid #E0E4EA',
                   }}
                 >
-                  {['TITLE', 'STATUS', 'EXPIRES', 'LAST UPDATED', 'REMINDER'].map((col) => (
+                  {['TITLE', 'STATUS', 'EXPIRES', 'LAST UPDATED', 'ACTIONS'].map((col) => (
                     <div
                       key={col}
                       style={{
@@ -338,8 +338,27 @@ const DocumentsPage: React.FC = () => {
                             {doc.lastUpdated || '—'}
                           </div>
 
-                          {/* Reminder */}
-                          <div>
+                          {/* Actions */}
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/documents/${doc.id}/guidelines`);
+                              }}
+                              title="Learn how to fill this document"
+                              style={{
+                                padding: '5px 10px',
+                                border: '1px solid #1B73E8',
+                                borderRadius: '6px',
+                                background: 'transparent',
+                                color: '#1B73E8',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Guide
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

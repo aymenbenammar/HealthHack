@@ -259,6 +259,29 @@ const DocumentDetailPage: React.FC = () => {
                   {doc.docClass}
                 </div>
               </div>
+              <button
+                onClick={() => navigate(`/documents/${doc.id}/guidelines`)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '10px 18px',
+                  background: '#ffffff',
+                  color: '#1B73E8',
+                  border: '1.5px solid #1B73E8',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#EBF3FF'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#ffffff'; }}
+              >
+                <span style={{ fontSize: '15px' }}>📋</span>
+                Learn to Fill
+              </button>
             </div>
 
             <div

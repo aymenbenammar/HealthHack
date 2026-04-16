@@ -87,6 +87,31 @@ If an information is not present in the document, fill the corresponding field w
 
 """
 
+@router.post("/document/guidelines", summary="Generate a page-by-page how-to checklist for filling in a document")
+async def document_guidelines(
+    file: UploadFile = File(...),
+    language: Optional[str] = Form(default="English"),
+) -> Dict[str, Any]:
+    if file.content_type not in _ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported file type '{file.content_type}'. Allowed: {', '.join(sorted(_ALLOWED_TYPES))}",
+        )
+
+    file_bytes = await file.read()
+
+    try:
+        llm_client = GroqLLMClient()
+        return llm_client.explain_document_guidelines(
+            file_bytes=file_bytes,
+            filename=file.filename or "document",
+            language=language,
+        )
+    except Exception as exc:
+        print(str(exc))
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+
 @router.post("/document/analyze", summary="Classify a document and run compliance checks")
 async def analyze_document(
     file: UploadFile = File(...),
