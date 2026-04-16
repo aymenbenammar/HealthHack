@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,8 +22,36 @@ const BellIcon = () => (
   </svg>
 );
 
+const ChevronIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'fr', label: 'Français' },
+  { code: 'tr', label: 'Türkçe' },
+  { code: 'ru', label: 'Русский' },
+];
+
 const Header: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
+  const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header
@@ -96,25 +124,79 @@ const Header: React.FC = () => {
 
       {/* Right side controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-        {/* Language */}
-        <button
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 10px',
-            background: 'transparent',
-            border: '1px solid #E0E4EA',
-            borderRadius: '6px',
-            color: '#5F6B7A',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontWeight: 500,
-          }}
-        >
-          <GlobeIcon />
-          <span>English</span>
-        </button>
+
+        {/* Language dropdown */}
+        <div ref={langRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setLangOpen((o) => !o)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 10px',
+              background: 'transparent',
+              border: '1px solid #E0E4EA',
+              borderRadius: '6px',
+              color: '#5F6B7A',
+              fontSize: '13px',
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            <GlobeIcon />
+            <span>{selectedLang.label}</span>
+            <ChevronIcon />
+          </button>
+
+          {langOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                background: '#ffffff',
+                border: '1px solid #E0E4EA',
+                borderRadius: '8px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                minWidth: '140px',
+                zIndex: 200,
+                overflow: 'hidden',
+              }}
+            >
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setSelectedLang(lang);
+                    setLangOpen(false);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: lang.code === selectedLang.code ? '#EBF3FF' : 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    color: lang.code === selectedLang.code ? '#1B73E8' : '#1A1D23',
+                    fontWeight: lang.code === selectedLang.code ? 600 : 400,
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (lang.code !== selectedLang.code)
+                      (e.currentTarget as HTMLButtonElement).style.background = '#F5F7FA';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (lang.code !== selectedLang.code)
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  }}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Bell */}
         <button
@@ -150,21 +232,21 @@ const Header: React.FC = () => {
         {/* Avatar */}
         <div
           style={{
-            width: '36px',
             height: '36px',
-            borderRadius: '50%',
+            padding: '0 12px',
+            borderRadius: '8px',
             background: 'linear-gradient(135deg, #1B73E8, #7C3AED)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
             fontSize: '13px',
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: 'pointer',
             userSelect: 'none',
           }}
         >
-          ZT
+          User
         </div>
       </div>
     </header>

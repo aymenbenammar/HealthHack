@@ -240,23 +240,9 @@ const DocumentDetailPage: React.FC = () => {
               }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1A1D23' }}>{doc.title}</h1>
                   <StatusBadge status={doc.status} />
-                </div>
-                <div
-                  style={{
-                    display: 'inline-block',
-                    padding: '2px 10px',
-                    background: '#F7F8FA',
-                    border: '1px solid #E0E4EA',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    color: '#5F6B7A',
-                    fontFamily: 'monospace',
-                  }}
-                >
-                  {doc.docClass}
                 </div>
               </div>
             </div>
@@ -619,7 +605,6 @@ const DocumentDetailPage: React.FC = () => {
                   {[
                     { label: 'Upload document', done: !!selectedFile },
                     { label: 'AI analysis complete', done: !!analysisResult },
-                    { label: 'Submit for review', done: false },
                   ].map((step) => (
                     <div
                       key={step.label}
