@@ -25,7 +25,7 @@ async function uploadFile(){
       body: fd,
     })
     if(!r.ok) throw new Error('Upload fehlgeschlagen')
-    uploadStatus.value = 'Upload erfolgreich ✓'
+    uploadStatus.value = 'Upload erfolgreich! ✓'
   }catch(err){
     uploadStatus.value = 'Fehler: '+err.message
   }finally{ busy.value = false }
