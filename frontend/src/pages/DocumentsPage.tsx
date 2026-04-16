@@ -145,8 +145,8 @@ const DocumentsPage: React.FC = () => {
                   marginRight: '28px',
                   background: 'transparent',
                   border: 'none',
-                  borderBottom: activeTab === 'documents' ? '2px solid #1B73E8' : '2px solid transparent',
-                  color: activeTab === 'documents' ? '#1B73E8' : '#5F6B7A',
+                  borderBottom: activeTab === 'documents' ? '2px solid #85CAE2' : '2px solid transparent',
+                  color: activeTab === 'documents' ? '#85CAE2' : '#5F6B7A',
                   fontSize: '14px',
                   fontWeight: activeTab === 'documents' ? 600 : 400,
                   cursor: 'pointer',
@@ -160,7 +160,7 @@ const DocumentsPage: React.FC = () => {
                 Your Documents
                 <span
                   style={{
-                    background: activeTab === 'documents' ? '#1B73E8' : '#E0E4EA',
+                    background: activeTab === 'documents' ? '#85CAE2' : '#E0E4EA',
                     color: activeTab === 'documents' ? '#fff' : '#5F6B7A',
                     borderRadius: '20px',
                     padding: '1px 8px',
@@ -178,8 +178,8 @@ const DocumentsPage: React.FC = () => {
                   padding: '14px 4px',
                   background: 'transparent',
                   border: 'none',
-                  borderBottom: activeTab === 'translations' ? '2px solid #1B73E8' : '2px solid transparent',
-                  color: activeTab === 'translations' ? '#1B73E8' : '#5F6B7A',
+                  borderBottom: activeTab === 'translations' ? '2px solid #85CAE2' : '2px solid transparent',
+                  color: activeTab === 'translations' ? '#85CAE2' : '#5F6B7A',
                   fontSize: '14px',
                   fontWeight: activeTab === 'translations' ? 600 : 400,
                   cursor: 'pointer',
@@ -270,7 +270,7 @@ const DocumentsPage: React.FC = () => {
                           style={{
                             fontSize: '12px',
                             fontWeight: 700,
-                            color: '#1B73E8',
+                            color: '#85CAE2',
                             textTransform: 'uppercase',
                             letterSpacing: '0.5px',
                           }}
@@ -338,10 +338,10 @@ const DocumentsPage: React.FC = () => {
                               title="Learn how to fill this document"
                               style={{
                                 padding: '5px 10px',
-                                border: '1px solid #1B73E8',
+                                border: '1px solid #85CAE2',
                                 borderRadius: '6px',
                                 background: 'transparent',
-                                color: '#1B73E8',
+                                color: '#85CAE2',
                                 fontSize: '12px',
                                 cursor: 'pointer',
                                 fontWeight: 600,
@@ -403,7 +403,7 @@ const DocumentsPage: React.FC = () => {
               {
                 label: 'Verified',
                 value: documents.filter((d) => d.status === 'verified').length,
-                color: '#1B73E8',
+                color: '#85CAE2',
               },
               {
                 label: 'Issues',

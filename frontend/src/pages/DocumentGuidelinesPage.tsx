@@ -311,7 +311,7 @@ const DocumentGuidelinesPage: React.FC = () => {
           <Header />
           <main style={{ marginTop: '60px', padding: '40px 32px', textAlign: 'center' }}>
             <h2 style={{ color: '#1A1D23', marginBottom: '8px' }}>Document Not Found</h2>
-            <button onClick={() => navigate('/documents')} style={{ padding: '10px 20px', background: '#1B73E8', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/documents')} style={{ padding: '10px 20px', background: '#85CAE2', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
               Back to Documents
             </button>
           </main>
@@ -373,7 +373,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                     width: `${progressPct}%`,
                     background: progressPct === 100
                       ? 'linear-gradient(90deg, #2E7D32, #43A047)'
-                      : 'linear-gradient(90deg, #1B73E8, #7C3AED)',
+                      : '#F79D25',
                     borderRadius: '99px',
                     transition: 'width 0.3s ease',
                   }}
@@ -402,7 +402,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                 gap: '6px',
                 background: 'transparent',
                 border: 'none',
-                color: '#1B73E8',
+                color: '#85CAE2',
                 fontSize: '14px',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -437,8 +437,8 @@ const DocumentGuidelinesPage: React.FC = () => {
                           style={{
                             padding: '5px 12px',
                             borderRadius: '20px',
-                            border: `1px solid ${language === lang ? '#1B73E8' : '#E0E4EA'}`,
-                            background: language === lang ? '#1B73E8' : '#ffffff',
+                            border: `1px solid ${language === lang ? '#85CAE2' : '#E0E4EA'}`,
+                            background: language === lang ? '#85CAE2' : '#ffffff',
                             color: language === lang ? '#ffffff' : '#5F6B7A',
                             fontSize: '13px',
                             fontWeight: language === lang ? 600 : 400,
@@ -460,7 +460,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                     onDragLeave={() => setIsDragOver(false)}
                     onDrop={handleDrop}
                     style={{
-                      border: `2px dashed ${isDragOver ? '#1B73E8' : '#D0D7E2'}`,
+                      border: `2px dashed ${isDragOver ? '#85CAE2' : '#D0D7E2'}`,
                       borderRadius: '12px',
                       padding: '72px 32px',
                       textAlign: 'center',
@@ -483,7 +483,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                         alignItems: 'center',
                         gap: '8px',
                         padding: '11px 22px',
-                        background: '#1B73E8',
+                        background: '#85CAE2',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
@@ -526,7 +526,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                             width: '48px',
                             height: '48px',
                             borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #7C3AED, #1B73E8)',
+                            background: '#F79D25',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -546,14 +546,14 @@ const DocumentGuidelinesPage: React.FC = () => {
                             alignItems: 'center',
                             gap: '8px',
                             padding: '11px 24px',
-                            background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                            background: '#F79D25',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
                             fontSize: '14px',
                             fontWeight: 700,
                             cursor: 'pointer',
-                            boxShadow: '0 3px 10px rgba(124,58,237,0.35)',
+                            boxShadow: '0 3px 10px rgba(247,157,37,0.35)',
                           }}
                         >
                           ✨ Generate Guide
@@ -687,7 +687,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                         boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                       }}
                     >
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#1B73E8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#85CAE2', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
                         Page {currentPage.page} checklist
                       </div>
                       <div style={{ fontSize: '13px', color: '#5F6B7A' }}>
@@ -753,10 +753,10 @@ const DocumentGuidelinesPage: React.FC = () => {
                           style={{
                             flex: 1,
                             padding: '9px',
-                            border: '1px solid #1B73E8',
+                            border: '1px solid #85CAE2',
                             borderRadius: '8px',
                             background: '#EBF3FF',
-                            color: '#1B73E8',
+                            color: '#85CAE2',
                             fontSize: '13px',
                             fontWeight: 600,
                             cursor: 'pointer',
@@ -807,7 +807,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                           background: pageDone
                             ? '#2E7D32'
                             : i === currentPageIdx
-                            ? '#1B73E8'
+                            ? '#85CAE2'
                             : '#D0D7E2',
                           cursor: 'pointer',
                           padding: 0,

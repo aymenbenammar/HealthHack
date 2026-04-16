@@ -1,9 +1,9 @@
 /* CSS Variables */
 :root {
-  --primary: #1B73E8;
+  --primary: #85CAE2;
   --primary-light: #EBF3FF;
-  --primary-dark: #1557B0;
-  --orange: #E65100;
+  --primary-dark: #5AAEC8;
+  --orange: #F79D25;
   --orange-bg: #FFF3E0;
   --orange-border: #FFB74D;
   --green: #2E7D32;
@@ -12,8 +12,8 @@
   --red-bg: #FFEBEE;
   --yellow: #F57F17;
   --yellow-bg: #FFFDE7;
-  --purple: #7C3AED;
-  --purple-light: #EDE9FE;
+  --purple: #F79D25;
+  --purple-light: #FFF3E0;
   --sidebar-width: 260px;
   --header-height: 60px;
   --bg-main: #F0F2F5;

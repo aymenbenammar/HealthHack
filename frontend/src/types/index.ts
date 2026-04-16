@@ -14,6 +14,7 @@ export interface AppDocument {
   description: string;
   acceptedFormats: string[];
   templates?: DocumentTemplate[];
+  isUserFilledForm?: boolean;
   expires?: string;
   lastUpdated?: string;
 }

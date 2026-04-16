@@ -15,6 +15,7 @@ import traceback
 import os
 from datetime import date as _date
 from groq import Groq
+from anthropic import Anthropic
 from app.core.config import settings
 from openai import OpenAI
 from app.services.utils import split_pdf_to_images
@@ -274,10 +275,16 @@ class GroqLLMClient:
 
     # ── Pass-2: rule-based compliance check ───────────────────────────────────
 
-    def _build_compliance_prompt(self, extraction: dict) -> str:
+    _LANG_NAMES = {
+        'en': 'English', 'de': 'German', 'ar': 'Arabic',
+        'fr': 'French', 'tr': 'Turkish', 'ru': 'Russian',
+    }
+
+    def _build_compliance_prompt(self, extraction: dict, language: str = 'en') -> str:
         doc_class = extraction.get("doc_class", "UNKNOWN")
         rules = _DOC_CLASS_RULES.get(doc_class, [])
         today = str(_date.today())
+        lang_name = self._LANG_NAMES.get(language, 'English')
 
         if rules:
             rules_block = "\n".join(
@@ -308,8 +315,8 @@ INSTRUCTIONS:
 - For apostille on EU/EEA documents (country_of_issue in AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK IS LI NO CH): use severity "warning" and add a bundesland_note.
 - For apostille on non-EU documents: severity must be "critical".
 - Fill "rule_compliance" with one entry per check (pass / fail / n/a).
-- "message" must be in English, user-facing, and actionable.
-- "tips" must be in English, concrete, and actionable (1–3 items, only for failed checks).
+- "message" must be in {lang_name}, user-facing, and actionable.
+- "tips" must be in {lang_name}, concrete, and actionable (1–3 items, only for failed checks).
 - Set "bundesland_note" if any result depends on the Bundesland; otherwise null.
 
 RETURN ONLY valid JSON — no markdown fences, no explanation:
@@ -318,7 +325,7 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
     {{
       "code": "<ISSUE_CODE>",
       "severity": "critical" | "warning" | "info",
-      "message": "<English user-facing message>",
+      "message": "<{lang_name} user-facing message>",
       "field": "<field name>"
     }}
   ],
@@ -329,17 +336,17 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
       "evidence": "<short explanation>"
     }}
   ],
-  "tips": ["<English tip 1>", "..."],
+  "tips": ["<{lang_name} tip 1>", "..."],
   "bundesland_note": null
 }}"""
 
-    def check_compliance(self, extraction: dict) -> dict:
+    def check_compliance(self, extraction: dict, language: str = 'en') -> dict:
         """
         Pass-2: send the extraction JSON to the text LLM and get back
         issues, rule_compliance, tips, and bundesland_note.
         Returns a dict with those four keys (empty defaults on failure).
         """
-        prompt = self._build_compliance_prompt(extraction)
+        prompt = self._build_compliance_prompt(extraction, language=language)
         client = Groq(api_key=self.api_key)
         self.logger.info(f"Running compliance check (text LLM) for {extraction.get('doc_class', '?')}...")
 
@@ -422,7 +429,7 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
             }
         ]
 
-    def analyze_document(self, file_bytes: bytes, filename: str,prompt:str, model: str = None) -> dict:
+    def analyze_document(self, file_bytes: bytes, filename: str, prompt: str, model: str = None, language: str = 'en') -> dict:
         """
         Split a PDF (or single image) into page images saved under resources/,
         then send all pages to the Groq VLM in one request.
@@ -493,7 +500,7 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
         print("="*60 + "\n")
 
         # ── Pass 2: compliance check (text LLM) ──────────────────────────────
-        compliance = self.check_compliance(result)
+        compliance = self.check_compliance(result, language=language)
         result.update(compliance)
 
         print("\n" + "="*60)
@@ -651,3 +658,293 @@ Return JSON in exactly this shape:
                     page_obj["image"] = page_data_uris[idx]
 
         return result
+
+
+# Anthropic requires "image/jpeg" (not "image/jpg") and does not accept "image/gif"
+# for its vision input; map accordingly.
+_ANTHROPIC_MIME_MAP = {
+    "image/jpg": "image/jpeg",
+    "image/jpeg": "image/jpeg",
+    "image/png": "image/png",
+    "image/webp": "image/webp",
+    "image/gif": "image/gif",
+    "application/pdf": "application/pdf",
+}
+
+
+class AnthropicLLMClient:
+    """
+    Drop-in replacement for GroqLLMClient that routes all vision and text
+    calls to Anthropic's Claude (default: Claude Opus 4.7).
+    """
+
+    def __init__(self):
+        self.api_key = settings.ANTHROPIC_API_KEY
+        self.default_model = settings.ANTHROPIC_DEFAULT_MODEL
+        self.text_model = settings.ANTHROPIC_DEFAULT_MODEL
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(handler)
+
+    def _extract_text(self, message) -> str:
+        parts = []
+        for block in message.content:
+            text = getattr(block, "text", None)
+            if text:
+                parts.append(text)
+        return "".join(parts)
+
+    # Reuse Groq's prompt builder — it is pure string formatting.
+    _build_compliance_prompt = GroqLLMClient._build_compliance_prompt
+    # Reuse the filesystem-only cross-doc name check.
+    check_name_mismatch = GroqLLMClient.check_name_mismatch
+
+    def check_compliance(self, extraction: dict) -> dict:
+        prompt = self._build_compliance_prompt(extraction)
+        client = Anthropic(api_key=self.api_key)
+        self.logger.info(f"Running compliance check (Claude {self.text_model}) for {extraction.get('doc_class', '?')}...")
+
+        message = client.messages.create(
+            model=self.text_model,
+            max_tokens=2048,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        raw = self._extract_text(message)
+        print("\n" + "-"*60)
+        print("PASS 2 — CLAUDE TEXT RESPONSE")
+        print("-"*60)
+        print(raw)
+        print("-"*60 + "\n")
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+            self.logger.info("Compliance check completed successfully")
+        except (json.JSONDecodeError, ValueError):
+            self.logger.warning("Compliance check returned invalid JSON — using empty defaults")
+            result = {}
+
+        return {
+            "issues":          result.get("issues", []),
+            "rule_compliance": result.get("rule_compliance", []),
+            "tips":            result.get("tips", []),
+            "bundesland_note": result.get("bundesland_note", None),
+        }
+
+    def _build_image_blocks(self, image_paths: list[str]) -> tuple[list[dict], list[str]]:
+        """Return (anthropic_content_blocks, data_uris) for a list of image paths."""
+        blocks = []
+        data_uris = []
+        for path in image_paths:
+            with open(path, "rb") as f:
+                raw_bytes = f.read()
+            img_data = base64.b64encode(raw_bytes).decode("utf-8")
+            detected = detectMimeType(img_data) or "image/png"
+            anth_mime = _ANTHROPIC_MIME_MAP.get(detected, "image/png")
+            data_uris.append(f"data:{anth_mime};base64,{img_data}")
+            blocks.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": anth_mime,
+                    "data": img_data,
+                },
+            })
+        return blocks, data_uris
+
+    def analyze_document(self, file_bytes: bytes, filename: str, prompt: str, model: str = None) -> dict:
+        if model is None:
+            model = self.default_model
+
+        ext = os.path.splitext(filename)[1].lower()
+
+        if ext == ".pdf":
+            base_name = os.path.splitext(filename)[0]
+            image_paths = split_pdf_to_images(file_bytes, base_name)
+            self.logger.info(f"PDF split into {len(image_paths)} page image(s)")
+        else:
+            os.makedirs("resources", exist_ok=True)
+            image_path = os.path.join("resources", filename)
+            with open(image_path, "wb") as f:
+                f.write(file_bytes)
+            image_paths = [image_path]
+            self.logger.info(f"Image saved to {image_path}")
+
+        image_blocks, _ = self._build_image_blocks(image_paths)
+
+        client = Anthropic(api_key=self.api_key)
+        self.logger.info(f"Calling Claude ({model}) with {len(image_blocks)} image(s)...")
+        message = client.messages.create(
+            model=model,
+            max_tokens=4096,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": image_blocks + [{"type": "text", "text": prompt}],
+            }],
+        )
+
+        raw = self._extract_text(message)
+        self.logger.info(f"Claude response received ({len(raw)} chars)")
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+        except (json.JSONDecodeError, ValueError):
+            result = {"result": raw}
+
+        print("\n" + "="*60)
+        print("PASS 1 — CLAUDE EXTRACTION RESULT")
+        print("="*60)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print("="*60 + "\n")
+
+        compliance = self.check_compliance(result)
+        result.update(compliance)
+
+        print("\n" + "="*60)
+        print("PASS 2 — COMPLIANCE CHECK RESULT")
+        print("="*60)
+        print(json.dumps(compliance, ensure_ascii=False, indent=2))
+        print("="*60 + "\n")
+
+        base_name = os.path.splitext(filename)[0]
+        output_path = os.path.join(os.path.dirname(image_paths[0]), f"{base_name}_result.json")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"Result saved to {output_path}")
+
+        cross_doc_issues = self.check_name_mismatch()
+        print("\n" + "="*60)
+        print("PASS 3 — CROSS-DOCUMENT NAME CHECK")
+        print("="*60)
+        if cross_doc_issues:
+            print(json.dumps(cross_doc_issues, ensure_ascii=False, indent=2))
+        else:
+            print("All document names match — no NAME_MISMATCH detected.")
+        print("="*60 + "\n")
+
+        result["cross_doc_issues"] = cross_doc_issues
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+
+        return result
+
+    def explain_document_guidelines(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        language: str = "English",
+        model: str = None,
+    ) -> dict:
+        if model is None:
+            model = self.default_model
+
+        ext = os.path.splitext(filename)[1].lower()
+        if ext == ".pdf":
+            base_name = os.path.splitext(filename)[0]
+            image_paths = split_pdf_to_images(file_bytes, base_name)
+            self.logger.info(f"Guidelines: PDF split into {len(image_paths)} page image(s)")
+        else:
+            os.makedirs("resources", exist_ok=True)
+            image_path = os.path.join("resources", filename)
+            with open(image_path, "wb") as f:
+                f.write(file_bytes)
+            image_paths = [image_path]
+
+        image_blocks, page_data_uris = self._build_image_blocks(image_paths)
+
+        prompt = f"""You are an expert, empathetic bureaucratic assistant helping international doctors prepare German Approbation documents.
+Analyze the attached document and provide a stress-free, actionable explanation STRICTLY IN {language}.
+
+Goal: Make the checklist easy to follow and not overwhelming. The user should be able to work page-by-page.
+
+Output rules:
+- Do NOT include a summary.
+- Return ONLY valid JSON (no markdown, no code fences, no extra text).
+- Organize output by page number.
+- Each action item must have a required key "item".
+- Optional keys for non-obvious items: "important", "what_it_means", "where_to_find_it", "what_to_prepare".
+- For simple/obvious items (name, date of birth, address, phone, email, signature, today's date), include only "item".
+- Omit "important" if there is no deadline or critical note.
+- "where_to_find_it" must refer to real-world sources (letters, office notices, authority documents), not the form itself.
+- If a page requires no user action, return an empty "actions" array.
+
+Return JSON in exactly this shape:
+{{
+  "pages": [
+    {{
+      "page": 1,
+      "actions": [
+        {{
+          "item": "Fill in your full legal name"
+        }},
+        {{
+          "item": "Enter your LPA number",
+          "what_it_means": "Your identifier assigned by the state examination office (Landesprüfungsamt).",
+          "where_to_find_it": "Found on correspondence from the Landesprüfungsamt or on your exam results letter.",
+          "what_to_prepare": "Your latest letter from the exam office"
+        }},
+        {{
+          "item": "Submit the application before 31.05.2026",
+          "important": "Deadline: 31.05.2026",
+          "what_it_means": "Applications received after this date may not be processed in time."
+        }}
+      ]
+    }},
+    {{
+      "page": 2,
+      "actions": []
+    }}
+  ]
+}}"""
+
+        client = Anthropic(api_key=self.api_key)
+        self.logger.info(f"Guidelines: calling Claude ({model}) with {len(image_blocks)} image(s)...")
+        message = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": image_blocks + [{"type": "text", "text": prompt}],
+            }],
+        )
+
+        raw = self._extract_text(message)
+        self.logger.info(f"Guidelines: Claude response received ({len(raw)} chars)")
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+        except (json.JSONDecodeError, ValueError):
+            result = {"pages": []}
+
+        if "pages" in result and isinstance(result["pages"], list):
+            for page_obj in result["pages"]:
+                idx = page_obj.get("page", 1) - 1
+                if 0 <= idx < len(page_data_uris):
+                    page_obj["image"] = page_data_uris[idx]
+
+        return result
+
+
+def get_llm_client():
+    """
+    Factory: return a GroqLLMClient or AnthropicLLMClient depending on
+    settings.LLM_PROVIDER ("groq" | "anthropic"). Unknown values fall back
+    to Groq.
+    """
+    provider = (settings.LLM_PROVIDER or "groq").strip().lower()
+    if provider == "anthropic":
+        return AnthropicLLMClient()
+    return GroqLLMClient()

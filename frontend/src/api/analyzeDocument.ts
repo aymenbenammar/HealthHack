@@ -3,6 +3,8 @@ import { AIAnalysisResult } from '../types';
 export async function analyzeDocument(file: File): Promise<AIAnalysisResult> {
   const formData = new FormData();
   formData.append('file', file);
+  const langCode = localStorage.getItem('selectedLang') ?? 'en';
+  formData.append('language', langCode);
   const res = await fetch('/api/v1/llm/document/analyze', {
     method: 'POST',
     body: formData,

@@ -291,7 +291,7 @@ const AIResultPanel: React.FC<AIResultPanelProps> = ({ result }) => {
       <div
         style={{
           padding: '14px 20px',
-          background: 'linear-gradient(135deg, #7C3AED 0%, #1B73E8 100%)',
+          background: '#F79D25',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

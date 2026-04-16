@@ -49,6 +49,7 @@ export const documents: AppDocument[] = [
     description:
       'A comprehensive, chronological curriculum vitae covering all periods of education and employment without gaps. Must be hand-signed and dated. Any unexplained gap longer than one month must be accounted for. A German translation is required if the CV is not written in German.',
     acceptedFormats: ['.pdf', '.jpg', '.png'],
+    isUserFilledForm: true,
   },
 
   // B) University Documents
@@ -137,6 +138,7 @@ export const documents: AppDocument[] = [
     description:
       'The official application form for the Approbation (Antrag auf Erteilung der Approbation als Arzt/Ärztin). Must be completed in full, signed, and dated. The form is provided by the respective Landesbehörde (state health authority).',
     acceptedFormats: ['.pdf'],
+    isUserFilledForm: true,
     templates: [
       { name: 'Approbation Application Form (Lower Saxony)', language: 'German' },
       { name: 'Approbation Application Form (Bavaria)', language: 'German' },

@@ -95,8 +95,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
             letterSpacing: '-0.3px',
           }}
         >
-          <span style={{ color: '#E65100' }}>Get2</span>
-          <span style={{ color: '#1B73E8' }}>Germany</span>
+          <span style={{ color: '#F79D25' }}>Get2</span>
+          <span style={{ color: '#85CAE2' }}>Germany</span>
         </span>
       </div>
 
@@ -119,8 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
                 borderTop: 'none',
                 borderRight: 'none',
                 borderBottom: 'none',
-                borderLeft: active ? '3px solid #1B73E8' : '3px solid transparent',
-                color: active ? '#1B73E8' : '#5F6B7A',
+                borderLeft: active ? '3px solid #85CAE2' : '3px solid transparent',
+                color: active ? '#85CAE2' : '#5F6B7A',
                 fontSize: '14px',
                 fontWeight: active ? 600 : 400,
                 cursor: 'pointer',

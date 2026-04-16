@@ -30,7 +30,7 @@ const DownloadIcon = () => (
 );
 
 const FileIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B73E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#85CAE2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <polyline points="14 2 14 8 20 8" />
   </svg>
@@ -134,7 +134,7 @@ const DocumentDetailPage: React.FC = () => {
               onClick={() => navigate('/documents')}
               style={{
                 padding: '10px 20px',
-                background: '#1B73E8',
+                background: '#85CAE2',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '8px',
@@ -217,7 +217,7 @@ const DocumentDetailPage: React.FC = () => {
                 gap: '6px',
                 background: 'transparent',
                 border: 'none',
-                color: '#1B73E8',
+                color: '#85CAE2',
                 fontSize: '14px',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -245,29 +245,6 @@ const DocumentDetailPage: React.FC = () => {
                   <StatusBadge status={doc.status} />
                 </div>
               </div>
-              <button
-                onClick={() => navigate(`/documents/${doc.id}/guidelines`)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '10px 18px',
-                  background: '#ffffff',
-                  color: '#1B73E8',
-                  border: '1.5px solid #1B73E8',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#EBF3FF'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#ffffff'; }}
-              >
-                <span style={{ fontSize: '15px' }}>📋</span>
-                Learn to Fill
-              </button>
             </div>
 
             <div
@@ -280,44 +257,47 @@ const DocumentDetailPage: React.FC = () => {
             >
               {/* Left column */}
               <div>
-                {/* Category */}
-                <InfoCard title="Category">
-                  <div style={{ fontSize: '14px', color: '#1B73E8', fontWeight: 600 }}>
-                    {doc.category}
-                  </div>
-                </InfoCard>
-
                 {/* Description */}
                 <InfoCard title="Description">
-                  <p style={{ fontSize: '14px', color: '#5F6B7A', lineHeight: '1.65' }}>
+                  <p style={{ fontSize: '14px', color: '#5F6B7A', lineHeight: '1.65', marginBottom: '14px' }}>
                     {doc.description}
                   </p>
+                  {doc.isUserFilledForm && <button
+                    onClick={() => navigate(`/documents/${doc.id}/guidelines`)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '9px 16px',
+                      background: 'linear-gradient(135deg, #EBF3FF, #F0F7FF)',
+                      color: '#85CAE2',
+                      border: '1.5px solid #BFDBFE',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+                      textDecoration: 'none',
+                      letterSpacing: '0.1px',
+                    }}
+                    onMouseEnter={(e) => {
+                      const btn = e.currentTarget as HTMLButtonElement;
+                      btn.style.background = '#DBEAFE';
+                      btn.style.borderColor = '#93C5FD';
+                      btn.style.boxShadow = '0 2px 8px rgba(27,115,232,0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      const btn = e.currentTarget as HTMLButtonElement;
+                      btn.style.background = 'linear-gradient(135deg, #EBF3FF, #F0F7FF)';
+                      btn.style.borderColor = '#BFDBFE';
+                      btn.style.boxShadow = 'none';
+                    }}
+                  >
+                    For step-by-step instructions on your specific document click here.
+                  </button>}
                 </InfoCard>
 
-                {/* Accepted Formats */}
-                <InfoCard title="Accepted Formats">
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {doc.acceptedFormats.map((fmt) => (
-                      <span
-                        key={fmt}
-                        style={{
-                          padding: '4px 12px',
-                          background: '#EBF3FF',
-                          color: '#1B73E8',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          fontFamily: 'monospace',
-                          border: '1px solid #BFDBFE',
-                        }}
-                      >
-                        {fmt}
-                      </span>
-                    ))}
-                  </div>
-                </InfoCard>
-
-                {/* Templates */}
+{/* Templates */}
                 {doc.templates && doc.templates.length > 0 && (
                   <InfoCard title="Template Information">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -350,9 +330,9 @@ const DocumentDetailPage: React.FC = () => {
                               gap: '6px',
                               padding: '7px 14px',
                               background: 'transparent',
-                              border: '1px solid #1B73E8',
+                              border: '1px solid #85CAE2',
                               borderRadius: '6px',
-                              color: '#1B73E8',
+                              color: '#85CAE2',
                               fontSize: '12px',
                               fontWeight: 600,
                               cursor: 'pointer',
@@ -403,7 +383,7 @@ const DocumentDetailPage: React.FC = () => {
                     onDragLeave={() => setIsDragOver(false)}
                     onDrop={handleDrop}
                     style={{
-                      border: `2px dashed ${isDragOver ? '#1B73E8' : '#D0D7E2'}`,
+                      border: `2px dashed ${isDragOver ? '#85CAE2' : '#D0D7E2'}`,
                       borderRadius: '10px',
                       padding: '24px 16px',
                       textAlign: 'center',
@@ -433,7 +413,7 @@ const DocumentDetailPage: React.FC = () => {
                         alignItems: 'center',
                         gap: '7px',
                         padding: '9px 18px',
-                        background: '#1B73E8',
+                        background: '#85CAE2',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
@@ -447,7 +427,7 @@ const DocumentDetailPage: React.FC = () => {
                         (e.currentTarget as HTMLButtonElement).style.background = '#1557B0';
                       }}
                       onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.background = '#1B73E8';
+                        (e.currentTarget as HTMLButtonElement).style.background = '#85CAE2';
                       }}
                     >
                       <UploadIcon />
@@ -526,27 +506,26 @@ const DocumentDetailPage: React.FC = () => {
                         justifyContent: 'center',
                         gap: '8px',
                         padding: '11px 18px',
-                        background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                        background: '#F79D25',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
                         fontSize: '14px',
                         fontWeight: 700,
                         cursor: 'pointer',
-                        boxShadow: '0 3px 10px rgba(124,58,237,0.35)',
+                        boxShadow: '0 3px 10px rgba(247,157,37,0.35)',
                         transition: 'opacity 0.15s, box-shadow 0.15s',
                         letterSpacing: '0.1px',
                       }}
                       onMouseEnter={(e) => {
                         (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
-                        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 14px rgba(124,58,237,0.45)';
+                        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 14px rgba(247,157,37,0.45)';
                       }}
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-                        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 3px 10px rgba(124,58,237,0.35)';
+                        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 3px 10px rgba(247,157,37,0.35)';
                       }}
                     >
-                      <span style={{ fontSize: '16px' }}>✨</span>
                       Check with AI
                     </button>
                   )}
@@ -567,7 +546,7 @@ const DocumentDetailPage: React.FC = () => {
                           width: '44px',
                           height: '44px',
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #7C3AED, #1B73E8)',
+                          background: '#F79D25',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -625,47 +604,53 @@ const DocumentDetailPage: React.FC = () => {
                   <div style={{ fontSize: '12px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
                     Checklist
                   </div>
-                  {[
-                    { label: 'Upload document', done: !!selectedFile },
-                    { label: 'AI analysis complete', done: !!analysisResult },
-                  ].map((step) => (
-                    <div
-                      key={step.label}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '6px 0',
-                      }}
-                    >
+                  {(() => {
+                    const aiPassed = analysisResult
+                      ? analysisResult.issues.filter(i => i.severity === 'critical').length === 0
+                      : null;
+                    const steps: { label: string; state: 'done' | 'failed' | 'pending' }[] = [
+                      { label: 'Upload document', state: selectedFile ? 'done' : 'pending' },
+                      {
+                        label: aiPassed === true ? 'AI analysis passed' : aiPassed === false ? 'AI analysis failed' : 'AI analysis',
+                        state: aiPassed === true ? 'done' : aiPassed === false ? 'failed' : 'pending',
+                      },
+                    ];
+                    return steps.map((step) => (
                       <div
+                        key={step.label}
                         style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: step.done ? '#2E7D32' : '#E0E4EA',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'background 0.2s',
+                          gap: '10px',
+                          padding: '6px 0',
                         }}
                       >
-                        {step.done && (
-                          <span style={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}>✓</span>
-                        )}
+                        <div
+                          style={{
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            background: step.state === 'done' ? '#2E7D32' : step.state === 'failed' ? '#C62828' : '#E0E4EA',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'background 0.2s',
+                          }}
+                        >
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            color: step.state === 'pending' ? '#9AA3AF' : '#1A1D23',
+                            fontWeight: step.state === 'pending' ? 400 : 500,
+                          }}
+                        >
+                          {step.label}
+                        </span>
                       </div>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          color: step.done ? '#1A1D23' : '#9AA3AF',
-                          fontWeight: step.done ? 500 : 400,
-                        }}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
             </div>

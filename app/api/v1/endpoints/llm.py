@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
-from app.services.llm_client import GroqLLMClient
+from app.services.llm_client import get_llm_client
 
 router = APIRouter()
 
@@ -101,7 +101,7 @@ async def document_guidelines(
     file_bytes = await file.read()
 
     try:
-        llm_client = GroqLLMClient()
+        llm_client = get_llm_client()
         return llm_client.explain_document_guidelines(
             file_bytes=file_bytes,
             filename=file.filename or "document",
@@ -115,7 +115,8 @@ async def document_guidelines(
 @router.post("/document/analyze", summary="Classify a document and run compliance checks")
 async def analyze_document(
     file: UploadFile = File(...),
-    model: Optional[str] = Form(default="meta-llama/llama-4-scout-17b-16e-instruct"),
+    model: Optional[str] = Form(default=None),
+    language: Optional[str] = Form(default='en'),
 ) -> Dict[str, Any]:
     if file.content_type not in _ALLOWED_TYPES:
         raise HTTPException(
@@ -127,12 +128,13 @@ async def analyze_document(
 
 
     try:
-        llm_client = GroqLLMClient()
+        llm_client = get_llm_client()
         return llm_client.analyze_document(
             file_bytes=file_bytes,
             filename=file.filename or "document",
             prompt=PROMPT,
             model=model,
+            language=language or 'en',
         )
     except Exception as exc:
         print(str(exc))
