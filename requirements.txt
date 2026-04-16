@@ -9,6 +9,15 @@ python-multipart==0.0.20
 # Groq
 groq==0.23.1
 
+# OpenAI SDK (used by VLLMClient)
+openai==1.77.0
+
+# HTTP client
+requests==2.32.3
+
 # PDF processing
 pypdf==5.4.0
 pymupdf==1.25.5
+
+# Image processing
+Pillow==11.2.1
