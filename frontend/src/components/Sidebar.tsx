@@ -158,31 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
           gap: '10px',
         }}
       >
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1B73E8, #7C3AED)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: '13px',
-            fontWeight: 600,
-            flexShrink: 0,
-          }}
-        >
-          ZT
-        </div>
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Zahra Trabelsi
-          </div>
-          <div style={{ fontSize: '11px', color: '#9AA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            zahratrabelsi10@gmail.com
-          </div>
-        </div>
+        
       </div>
     </aside>
   );

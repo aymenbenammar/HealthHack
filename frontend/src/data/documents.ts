@@ -12,7 +12,7 @@ export const documents: AppDocument[] = [
       'An official birth certificate issued by the civil registry office of your country of birth. Must show full name, date of birth, place of birth, and names of parents. If not in German, a certified translation is required.',
     acceptedFormats: ['.pdf', '.jpg', '.png'],
     templates: [
-      { name: 'Cover Letter Template', language: 'German' },
+      { name: 'Birth Certificate Template', language: 'German' },
       { name: 'Translation Request Form', language: 'German / English' },
     ],
   },
@@ -38,6 +38,17 @@ export const documents: AppDocument[] = [
     templates: [
       { name: 'Name Consistency Declaration', language: 'German' },
     ],
+  },
+
+  {
+    id: 'cv-signed',
+    title: 'Signed / Curriculum Vitae',
+    docClass: 'CV_SIGNED',
+    category: 'A) Personal Documents',
+    status: 'required',
+    description:
+      'A comprehensive, chronological curriculum vitae covering all periods of education and employment without gaps. Must be hand-signed and dated. Any unexplained gap longer than one month must be accounted for. A German translation is required if the CV is not written in German.',
+    acceptedFormats: ['.pdf', '.jpg', '.png'],
   },
 
   // B) University Documents

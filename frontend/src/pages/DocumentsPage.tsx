@@ -307,19 +307,9 @@ const DocumentsPage: React.FC = () => {
                                 fontSize: '14px',
                                 fontWeight: 500,
                                 color: '#1A1D23',
-                                marginBottom: '2px',
                               }}
                             >
                               {doc.title}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '11px',
-                                color: '#9AA3AF',
-                                fontFamily: 'monospace',
-                              }}
-                            >
-                              {doc.docClass}
                             </div>
                           </div>
 
