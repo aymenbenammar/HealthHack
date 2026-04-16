@@ -115,10 +115,9 @@ class GroqLLMClient:
         except (json.JSONDecodeError, ValueError):
             result = {"result": raw}
 
-        # Save result to resources/
-        os.makedirs("resources", exist_ok=True)
+        # Save result alongside the page images (same folder they landed in)
         base_name = os.path.splitext(filename)[0]
-        output_path = os.path.join("resources", f"{base_name}_result.json")
+        output_path = os.path.join(os.path.dirname(image_paths[0]), f"{base_name}_result.json")
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         self.logger.info(f"Result saved to {output_path}")
