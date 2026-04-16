@@ -1,0 +1,72 @@
+/* ------------------ Farb-Variablen ------------------ */
+:root{
+  --col-bg:        #faf5ef;   /* beige Seiten­hintergrund   */
+  --col-surface:   #ffffff;   /* weiße Karte                */
+  --col-text:      #0f172a;   /* Haupttext (fast schwarz)   */
+  --col-muted:     #64748b;   /* graue Beschriftung         */
+
+  --col-orange:    #ff9500;   /* Primärbutton + get2        */
+  --col-blue:      #1476ff;   /* Links + Germany            */
+
+  --radius-card:   24px;
+  --radius-btn:    8px;
+  --shadow-card:   0 8px 20px rgba(0,0,0,.06);
+  --shadow-btn:    0 2px 4px rgba(0,0,0,.14);
+}
+
+/* ------------------ Basiselemente ------------------- */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Inter","Segoe UI",Arial,sans-serif;
+  background:var(--col-bg);
+  color:var(--col-text);
+  line-height:1.6;
+}
+h1,h2,h3{margin:0 0 1rem;font-weight:700}
+a{color:var(--col-blue);text-decoration:none;font-weight:500}
+a:hover{text-decoration:underline}
+
+/* ------------------ Layout-Hilfen ------------------- */
+.wrapper{
+  max-width:1100px;
+  margin:3rem auto;
+  padding:0 1rem;
+}
+.card{
+  background:var(--col-surface);
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card);
+  padding:3rem 4rem;
+}
+
+/* ------------------ Logo ---------------------------- */
+.logo{
+  font-size:clamp(1.8rem,4vw+1rem,2.8rem);
+  font-weight:700;
+  text-align:center;
+}
+.logo .get2{color:var(--col-orange)}
+.logo .germany{color:var(--col-blue)}
+
+/* ------------------ Buttons ------------------------- */
+.btn{
+  padding:.6rem 1.8rem;
+  border:none;
+  border-radius:var(--radius-btn);
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s background, .2s box-shadow;
+}
+.btn-primary{
+  background:var(--col-orange);
+  color:#fff;
+  box-shadow:var(--shadow-btn);
+}
+.btn-primary:hover{background:#e08400}
+.btn[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none}
+
+/* ------------------ Tabelle ------------------------- */
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:.45rem .6rem;border-bottom:1px solid #e5e7eb}
+th{text-align:left}led]{opacity:.6;cursor:not-allowed;box-shadow:none}
