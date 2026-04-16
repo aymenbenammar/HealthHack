@@ -13,10 +13,230 @@ import time
 import base64
 import traceback
 import os
+from datetime import date as _date
 from groq import Groq
 from app.core.config import settings
 from openai import OpenAI
 from app.services.utils import split_pdf_to_images
+
+# ── Compliance rules per doc-class ────────────────────────────────────────────
+# Each tuple: (issue_code, field_hint, check_instruction)
+# Only the codes that appear as ✔ for this class in the defect matrix.
+_DOC_CLASS_RULES: dict[str, list[tuple[str, str, str]]] = {
+    "ANTRAG_APPROBATION": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true — the form must carry an original handwritten signature"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("INCOMPLETE_FIELDS", "metadata.full_name",
+         "full_name must be present"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true — copies are not accepted"),
+        ("DATE_INCONSISTENT", "metadata.issue_date",
+         "issue_date must not be a future date and must not contradict other dates in the document"),
+    ],
+    "NACHWEIS_ZUSTAENDIGKEIT": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+    ],
+    "CV_SIGNED": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true — CV must be hand-signed"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("INCOMPLETE_FIELDS", "metadata.full_name",
+         "full_name must be present"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true — a copy of the signed CV is not accepted"),
+        ("DATE_INCONSISTENT", "metadata.issue_date",
+         "issue_date must not be in the future; employment/education dates must not overlap or contradict"),
+        ("CHRONOLOGICAL_GAP", "(employment history)",
+         "Check all employment and education periods; flag any unexplained gap longer than 1 month (31 days)"),
+    ],
+    "DIPLOMA": [
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true (Beglaubigungsvermerk required)"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; for EU/EEA it is conditional on Bundesland"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, the translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+        ("DATE_INCONSISTENT", "metadata.issue_date",
+         "issue_date must not be in the future and must not contradict graduation year or other internal dates"),
+    ],
+    "CURRICULUM": [
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "ARBEITSZEUGNIS": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+        ("INCOMPLETE_FIELDS", "metadata.full_name",
+         "full_name must be present"),
+        ("DATE_INCONSISTENT", "metadata.issue_date",
+         "issue_date must not be in the future and must not contradict employment dates in the document"),
+    ],
+    "LICENSE": [
+        ("DOC_EXPIRED", "formal_flags.is_valid_not_expired",
+         "is_valid_not_expired must be true — the licence must not have passed its own expiry date"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "PASSPORT": [
+        ("DOC_EXPIRED", "formal_flags.is_valid_not_expired",
+         "is_valid_not_expired must be true — the passport must not be expired"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+    ],
+    "MELDEBESCHEINIGUNG": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("INCOMPLETE_FIELDS", "metadata.full_name",
+         "full_name must be present"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 90; the Meldebescheinigung must not be older than 90 days"),
+    ],
+    "BIRTH_CERT": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "NAME_CHANGE": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "EU_FUEHRUNGSZEUGNIS": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 90; Führungszeugnis must not be older than 90 days"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true — only originals accepted"),
+        ("WRONG_BELEGART_FZ", "(belegart field or document text)",
+         "Must be Belegart 0 (issued for private use / Privatpersonen); any other Belegart is invalid"),
+    ],
+    "HEIMAT_FUEHRUNGSZEUGNIS": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 90"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "GOOD_STANDING": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 90"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+    "AERZTLICHE_BESCHEINIGUNG": [
+        ("MISSING_SIGNATURE", "formal_flags.has_signature",
+         "has_signature must be true — must carry the physician's signature"),
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("MISSING_STAMP", "formal_flags.has_official_stamp",
+         "has_official_stamp must be true — must carry the practice stamp"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 90"),
+        ("ORIGINAL_REQUIRED", "formal_flags.is_original",
+         "is_original must be true"),
+    ],
+    "B2_CERT": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("EXPIRED_MAX_AGE", "formal_flags.age_days",
+         "age_days must be ≤ 730 (2 years); language certificate must not be older than 2 years"),
+        ("WRONG_LEVEL", "(certificate level visible in document)",
+         "Language level must be B2, C1, or C2; anything below B2 is invalid. "
+         "Accepted providers: Goethe-Institut, telc, ÖSD, DSH, TestDaF"),
+    ],
+    "FSP_CERT": [
+        ("MISSING_DATE", "metadata.issue_date",
+         "issue_date must not be null"),
+    ],
+    "PROMOTIONSURKUNDE": [
+        ("NOT_CERTIFIED", "formal_flags.is_certified_copy",
+         "If is_original is false, is_certified_copy must be true"),
+        ("MISSING_APOSTILLE", "formal_flags.has_apostille",
+         "has_apostille must be true for non-EU/EEA documents; conditional for EU/EEA"),
+        ("MISSING_TRANSLATION", "metadata.language",
+         "If language is not 'de', a German translation must be attached"),
+        ("TRANSLATION_NOT_SWORN", "(translation info)",
+         "If a translation is present, translator must be 'öffentlich bestellt und allgemein beeidigt'"),
+    ],
+}
 
 signatures = {
     "JVBERi0": "application/pdf",
@@ -44,12 +264,114 @@ class GroqLLMClient:
     def __init__(self):
         self.api_key = settings.GROQ_API_KEY
         self.default_model = settings.GROQ_DEFAULT_VISION_MODEL
+        self.text_model = settings.GROQ_DEFAULT_TEXT_MODEL
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         if not self.logger.handlers:
             handler = logging.StreamHandler()
             handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
             self.logger.addHandler(handler)
+
+    # ── Pass-2: rule-based compliance check ───────────────────────────────────
+
+    def _build_compliance_prompt(self, extraction: dict) -> str:
+        doc_class = extraction.get("doc_class", "UNKNOWN")
+        rules = _DOC_CLASS_RULES.get(doc_class, [])
+        today = str(_date.today())
+
+        if rules:
+            rules_block = "\n".join(
+                f"  {i+1}. {code} — field: {field}\n     Rule: {instruction}"
+                for i, (code, field, instruction) in enumerate(rules)
+            )
+        else:
+            rules_block = "  (no specific rules defined for this document class)"
+
+        return f"""You are a compliance checker for German Approbation (medical licence) documents.
+
+Today's date: {today}
+
+The following JSON was extracted from a document by a vision model.
+Document class: {doc_class}
+
+EXTRACTED DATA:
+{json.dumps(extraction, ensure_ascii=False, indent=2)}
+
+APPLICABLE CHECKS FOR {doc_class}:
+{rules_block}
+
+INSTRUCTIONS:
+- Go through each check above one by one.
+- If a check FAILS, add one entry to "issues".
+- If a check PASSES or is NOT APPLICABLE (field is "n/a"), do NOT add an issue.
+- For age-based checks: use formal_flags.age_days if available; treat null as unknown (skip).
+- For apostille on EU/EEA documents (country_of_issue in AT BE BG CY CZ DE DK EE ES FI FR GR HR HU IE IT LT LU LV MT NL PL PT RO SE SI SK IS LI NO CH): use severity "warning" and add a bundesland_note.
+- For apostille on non-EU documents: severity must be "critical".
+- Fill "rule_compliance" with one entry per check (pass / fail / n/a).
+- "message" must be in German, user-facing, and actionable.
+- "tips" must be in German, concrete, and actionable (1–3 items, only for failed checks).
+- Set "bundesland_note" if any result depends on the Bundesland; otherwise null.
+
+RETURN ONLY valid JSON — no markdown fences, no explanation:
+{{
+  "issues": [
+    {{
+      "code": "<ISSUE_CODE>",
+      "severity": "critical" | "warning" | "info",
+      "message": "<English user-facing message>",
+      "field": "<field name>"
+    }}
+  ],
+  "rule_compliance": [
+    {{
+      "rule": "<check name>",
+      "status": "pass" | "fail" | "n/a",
+      "evidence": "<short explanation>"
+    }}
+  ],
+  "tips": ["<English tip 1>", "..."],
+  "bundesland_note": null
+}}"""
+
+    def check_compliance(self, extraction: dict) -> dict:
+        """
+        Pass-2: send the extraction JSON to the text LLM and get back
+        issues, rule_compliance, tips, and bundesland_note.
+        Returns a dict with those four keys (empty defaults on failure).
+        """
+        prompt = self._build_compliance_prompt(extraction)
+        client = Groq(api_key=self.api_key)
+        self.logger.info(f"Running compliance check (text LLM) for {extraction.get('doc_class', '?')}...")
+
+        completion = client.chat.completions.create(
+            model=self.text_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_completion_tokens=2048,
+        )
+
+        raw = completion.choices[0].message.content
+        print("\n" + "-"*60)
+        print("PASS 2 — TEXT LLM RAW RESPONSE")
+        print("-"*60)
+        print(raw)
+        print("-"*60 + "\n")
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        try:
+            result = json.loads(raw[start:end])
+            self.logger.info("Compliance check completed successfully")
+        except (json.JSONDecodeError, ValueError):
+            self.logger.warning("Compliance check returned invalid JSON — using empty defaults")
+            result = {}
+
+        return {
+            "issues":          result.get("issues", []),
+            "rule_compliance": result.get("rule_compliance", []),
+            "tips":            result.get("tips", []),
+            "bundesland_note": result.get("bundesland_note", None),
+        }
 
     def analyze_document(self, file_bytes: bytes, filename: str,prompt:str, model: str = None) -> dict:
         """
@@ -107,7 +429,7 @@ class GroqLLMClient:
         raw = completion.choices[0].message.content
         self.logger.info(f"VLM response received ({len(raw)} chars)")
 
-        # Extract the JSON object by finding the outermost { ... }
+        # ── Pass 1: parse VLM extraction ─────────────────────────────────────
         start = raw.find("{")
         end = raw.rfind("}") + 1
         try:
@@ -115,7 +437,23 @@ class GroqLLMClient:
         except (json.JSONDecodeError, ValueError):
             result = {"result": raw}
 
-        # Save result alongside the page images (same folder they landed in)
+        print("\n" + "="*60)
+        print("PASS 1 — VLM EXTRACTION RESULT")
+        print("="*60)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print("="*60 + "\n")
+
+        # ── Pass 2: compliance check (text LLM) ──────────────────────────────
+        compliance = self.check_compliance(result)
+        result.update(compliance)
+
+        print("\n" + "="*60)
+        print("PASS 2 — COMPLIANCE CHECK RESULT")
+        print("="*60)
+        print(json.dumps(compliance, ensure_ascii=False, indent=2))
+        print("="*60 + "\n")
+
+        # ── Save merged result alongside the page images ──────────────────────
         base_name = os.path.splitext(filename)[0]
         output_path = os.path.join(os.path.dirname(image_paths[0]), f"{base_name}_result.json")
         with open(output_path, "w", encoding="utf-8") as f:

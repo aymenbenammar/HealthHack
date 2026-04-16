@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = ""
     GROQ_DEFAULT_VISION_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    GROQ_DEFAULT_TEXT_MODEL: str = "llama-3.3-70b-versatile"
 
 
 
