@@ -454,10 +454,10 @@ const DocumentDetailPage: React.FC = () => {
                 )}
 
                 {/* Useful Links */}
-                {doc.usefulLinks && doc.usefulLinks.length > 0 && (
+                {(tDoc?.usefulLinks ?? doc.usefulLinks) && (tDoc?.usefulLinks ?? doc.usefulLinks)!.length > 0 && (
                   <InfoCard title={t.usefulLinksTitle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {doc.usefulLinks.map((link, i) => (
+                      {(tDoc?.usefulLinks ?? doc.usefulLinks)!.map((link, i) => (
                         <a
                           key={i}
                           href={link.url}
