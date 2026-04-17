@@ -6,6 +6,9 @@ import AIResultPanel from '../components/AIResultPanel';
 import { getDocumentById } from '../data/documents';
 import { DocStatus, AIAnalysisResult } from '../types';
 import { analyzeDocument } from '../api/analyzeDocument';
+import { useLanguage } from '../i18n/LanguageContext';
+import { categoryTranslationKey } from '../i18n/translations';
+import { getTranslatedDocument } from '../i18n/documentTranslations';
 
 const BackIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -52,11 +55,12 @@ const SpinnerIcon = () => (
 );
 
 const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
+  const { t } = useLanguage();
   const configs: Record<DocStatus, { label: string; bg: string; color: string; border: string }> = {
-    required: { label: 'Required', bg: '#FFF3E0', color: '#E65100', border: '#FFB74D' },
-    uploaded: { label: 'Uploaded', bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7' },
-    verified: { label: 'Verified', bg: '#E3F2FD', color: '#1565C0', border: '#90CAF9' },
-    issue: { label: 'Issue', bg: '#FFEBEE', color: '#C62828', border: '#EF9A9A' },
+    required: { label: t.statusRequired, bg: '#FFF3E0', color: '#E65100', border: '#FFB74D' },
+    uploaded: { label: t.statusUploaded, bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7' },
+    verified: { label: t.statusVerified, bg: '#E3F2FD', color: '#1565C0', border: '#90CAF9' },
+    issue: { label: t.statusIssue, bg: '#FFEBEE', color: '#C62828', border: '#EF9A9A' },
   };
   const cfg = configs[status];
   return (
@@ -116,7 +120,9 @@ const DocumentDetailPage: React.FC = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const { t, lang } = useLanguage();
   const doc = id ? getDocumentById(id) : undefined;
+  const tDoc = doc ? getTranslatedDocument(doc, lang) : undefined;
 
   if (!doc) {
     return (
@@ -126,9 +132,9 @@ const DocumentDetailPage: React.FC = () => {
           <Header />
           <main style={{ marginTop: '60px', padding: '40px 32px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px', marginBottom: '16px' }}>🔍</div>
-            <h2 style={{ color: '#1A1D23', marginBottom: '8px' }}>Document Not Found</h2>
+            <h2 style={{ color: '#1A1D23', marginBottom: '8px' }}>{t.docNotFound}</h2>
             <p style={{ color: '#5F6B7A', marginBottom: '20px' }}>
-              The document you are looking for does not exist.
+              {t.docNotFoundHint}
             </p>
             <button
               onClick={() => navigate('/documents')}
@@ -143,7 +149,7 @@ const DocumentDetailPage: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              Back to Documents
+              {t.backToDocuments}
             </button>
           </main>
         </div>
@@ -226,7 +232,7 @@ const DocumentDetailPage: React.FC = () => {
               }}
             >
               <BackIcon />
-              Back to Overview
+              {t.backToOverview}
             </button>
 
             {/* Title row */}
@@ -241,7 +247,7 @@ const DocumentDetailPage: React.FC = () => {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1A1D23' }}>{doc.title}</h1>
+                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1A1D23' }}>{tDoc!.title}</h1>
                   <StatusBadge status={doc.status} />
                 </div>
               </div>
@@ -259,8 +265,8 @@ const DocumentDetailPage: React.FC = () => {
               <div>
                 {/* Description */}
                 <InfoCard title="Description">
-                  <p style={{ fontSize: '14px', color: '#5F6B7A', lineHeight: '1.65', marginBottom: '14px' }}>
-                    {doc.description}
+                  <p style={{ fontSize: '14px', color: '#5F6B7A', lineHeight: '1.65' }}>
+                    {tDoc!.description}
                   </p>
                   {doc.isUserFilledForm && <button
                     onClick={() => navigate(`/documents/${doc.id}/guidelines`)}
@@ -298,10 +304,10 @@ const DocumentDetailPage: React.FC = () => {
                 </InfoCard>
 
 {/* Templates */}
-                {doc.templates && doc.templates.length > 0 && (
-                  <InfoCard title="Template Information">
+                {tDoc!.templates && tDoc!.templates.length > 0 && (
+                  <InfoCard title={t.templateInfoLabel}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {doc.templates.map((tmpl, i) => (
+                      {tDoc!.templates!.map((tmpl, i) => (
                         <div
                           key={i}
                           style={{
@@ -320,7 +326,7 @@ const DocumentDetailPage: React.FC = () => {
                               {tmpl.name}
                             </div>
                             <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '2px' }}>
-                              Language: {tmpl.language}
+                              {t.templateLanguage}: {tmpl.language}
                             </div>
                           </div>
                           <button
@@ -341,7 +347,7 @@ const DocumentDetailPage: React.FC = () => {
                             }}
                           >
                             <DownloadIcon />
-                            Download
+                            {t.download}
                           </button>
                         </div>
                       ))}
@@ -371,7 +377,7 @@ const DocumentDetailPage: React.FC = () => {
                       borderBottom: '1px solid #F0F2F5',
                     }}
                   >
-                    Your Uploaded Documents
+                    {t.yourUploadedDocs}
                   </h3>
 
                   {/* Dropzone */}
@@ -394,10 +400,10 @@ const DocumentDetailPage: React.FC = () => {
                   >
                     <div style={{ fontSize: '28px', marginBottom: '8px' }}>📎</div>
                     <p style={{ fontSize: '13px', color: '#5F6B7A', marginBottom: '4px' }}>
-                      Drag & drop your file here
+                      {t.dragAndDrop}
                     </p>
                     <p style={{ fontSize: '12px', color: '#9AA3AF', marginBottom: '14px' }}>
-                      {doc.acceptedFormats.join(', ')} up to 20 MB
+                      {doc.acceptedFormats.join(', ')} {t.upTo20MB}
                     </p>
                     <input
                       ref={fileInputRef}
@@ -431,7 +437,7 @@ const DocumentDetailPage: React.FC = () => {
                       }}
                     >
                       <UploadIcon />
-                      Upload Document
+                      {t.uploadDocument}
                     </button>
                   </div>
 
@@ -526,6 +532,7 @@ const DocumentDetailPage: React.FC = () => {
                         (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 3px 10px rgba(247,157,37,0.35)';
                       }}
                     >
+                      <span style={{ fontSize: '16px' }}>✨</span>
                       Check with AI
                     </button>
                   )}
@@ -557,10 +564,10 @@ const DocumentDetailPage: React.FC = () => {
                         <SpinnerIcon />
                       </div>
                       <div style={{ fontSize: '13px', color: '#5F6B7A', fontWeight: 500 }}>
-                        Analyzing document...
+                        {t.analyzingDoc}
                       </div>
                       <div style={{ fontSize: '12px', color: '#9AA3AF' }}>
-                        This may take a few seconds
+                        {t.analyzingHint}
                       </div>
                     </div>
                   )}
@@ -582,7 +589,7 @@ const DocumentDetailPage: React.FC = () => {
                       <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#C62828', marginBottom: '2px' }}>
-                          Analysis Failed
+                          {t.analysisFailed}
                         </div>
                         <div style={{ fontSize: '12px', color: '#C62828' }}>{analysisError}</div>
                       </div>
@@ -602,7 +609,7 @@ const DocumentDetailPage: React.FC = () => {
                   }}
                 >
                   <div style={{ fontSize: '12px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-                    Checklist
+                    {t.checklistLabel}
                   </div>
                   {(() => {
                     const aiPassed = analysisResult
@@ -651,6 +658,47 @@ const DocumentDetailPage: React.FC = () => {
                       </div>
                     ));
                   })()}
+                  {[
+                    { label: t.checklistUpload, done: !!selectedFile },
+                    { label: t.checklistAI, done: !!analysisResult },
+                  ].map((step) => (
+                    <div
+                      key={step.label}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '6px 0',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: step.done ? '#2E7D32' : '#E0E4EA',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'background 0.2s',
+                        }}
+                      >
+                        {step.done && (
+                          <span style={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}>✓</span>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          color: step.done ? '#1A1D23' : '#9AA3AF',
+                          fontWeight: step.done ? 500 : 400,
+                        }}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -4,19 +4,18 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { documents, categories, getDocumentsByCategory } from '../data/documents';
 import { DocStatus } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import { categoryTranslationKey } from '../i18n/translations';
+import { getTranslatedDocument } from '../i18n/documentTranslations';
 
-const ChevronDownIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
 
 const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
+  const { t } = useLanguage();
   const configs: Record<DocStatus, { label: string; bg: string; color: string; border: string }> = {
-    required: { label: 'Required', bg: '#FFF3E0', color: '#E65100', border: '#FFB74D' },
-    uploaded: { label: 'Uploaded', bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7' },
-    verified: { label: 'Verified', bg: '#E3F2FD', color: '#1565C0', border: '#90CAF9' },
-    issue: { label: 'Issue', bg: '#FFEBEE', color: '#C62828', border: '#EF9A9A' },
+    required: { label: t.statusRequired, bg: '#FFF3E0', color: '#E65100', border: '#FFB74D' },
+    uploaded: { label: t.statusUploaded, bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7' },
+    verified: { label: t.statusVerified, bg: '#E3F2FD', color: '#1565C0', border: '#90CAF9' },
+    issue: { label: t.statusIssue, bg: '#FFEBEE', color: '#C62828', border: '#EF9A9A' },
   };
   const cfg = configs[status];
   return (
@@ -41,6 +40,7 @@ const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
 
 const DocumentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<'documents' | 'translations'>('documents');
   const totalDocs = documents.length;
 
@@ -71,52 +71,13 @@ const DocumentsPage: React.FC = () => {
           >
             <div>
               <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1A1D23', marginBottom: '4px' }}>
-                My Documents
+                {t.pageTitle}
               </h1>
               <p style={{ fontSize: '14px', color: '#5F6B7A' }}>
-                Manage your Approbation documents and track their status
+                {t.pageSubtitle}
               </p>
             </div>
 
-            {/* Federal State dropdown */}
-            <div style={{ position: 'relative' }}>
-              <select
-                style={{
-                  appearance: 'none',
-                  padding: '9px 36px 9px 14px',
-                  border: '1px solid #E0E4EA',
-                  borderRadius: '8px',
-                  background: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: '#1A1D23',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                }}
-              >
-                <option>Lower Saxony</option>
-                <option>Bavaria</option>
-                <option>North Rhine-Westphalia</option>
-                <option>Baden-Württemberg</option>
-                <option>Hamburg</option>
-                <option>Berlin</option>
-                <option>Hesse</option>
-                <option>Saxony</option>
-              </select>
-              <span
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  color: '#9AA3AF',
-                }}
-              >
-                <ChevronDownIcon />
-              </span>
-            </div>
           </div>
 
           {/* Main card */}
@@ -157,7 +118,7 @@ const DocumentsPage: React.FC = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Your Documents
+                {t.tabYourDocuments}
                 <span
                   style={{
                     background: activeTab === 'documents' ? '#85CAE2' : '#E0E4EA',
@@ -190,7 +151,7 @@ const DocumentsPage: React.FC = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Your Translations
+                {t.tabYourTranslations}
                 <span
                   style={{
                     background: '#E0E4EA',
@@ -217,10 +178,10 @@ const DocumentsPage: React.FC = () => {
               >
                 <div style={{ fontSize: '36px', marginBottom: '12px' }}>📄</div>
                 <div style={{ fontSize: '16px', fontWeight: 600, color: '#5F6B7A', marginBottom: '6px' }}>
-                  No translations yet
+                  {t.noTranslations}
                 </div>
                 <div style={{ fontSize: '14px' }}>
-                  Upload documents and request certified translations here.
+                  {t.noTranslationsHint}
                 </div>
               </div>
             ) : (
@@ -235,7 +196,7 @@ const DocumentsPage: React.FC = () => {
                     borderBottom: '1px solid #E0E4EA',
                   }}
                 >
-                  {['TITLE', 'STATUS', 'EXPIRES', 'LAST UPDATED', 'ACTIONS'].map((col) => (
+                  {[t.colTitle, t.colStatus, t.colExpires, t.colLastUpdated, t.colActions].map((col) => (
                     <div
                       key={col}
                       style={{
@@ -275,7 +236,7 @@ const DocumentsPage: React.FC = () => {
                             letterSpacing: '0.5px',
                           }}
                         >
-                          {cat}
+                          {t[categoryTranslationKey[cat]] ?? cat}
                         </span>
                       </div>
 
@@ -309,7 +270,7 @@ const DocumentsPage: React.FC = () => {
                                 color: '#1A1D23',
                               }}
                             >
-                              {doc.title}
+                              {getTranslatedDocument(doc, lang).title}
                             </div>
                           </div>
 
@@ -363,7 +324,7 @@ const DocumentsPage: React.FC = () => {
                                 cursor: 'pointer',
                               }}
                             >
-                              Set
+                              {t.reminderSet}
                             </button>
                           </div>
                         </div>
@@ -389,27 +350,11 @@ const DocumentsPage: React.FC = () => {
             }}
           >
             {[
-              { label: 'Total Documents', value: totalDocs, color: '#1A1D23' },
-              {
-                label: 'Required',
-                value: documents.filter((d) => d.status === 'required').length,
-                color: '#E65100',
-              },
-              {
-                label: 'Uploaded',
-                value: documents.filter((d) => d.status === 'uploaded').length,
-                color: '#2E7D32',
-              },
-              {
-                label: 'Verified',
-                value: documents.filter((d) => d.status === 'verified').length,
-                color: '#85CAE2',
-              },
-              {
-                label: 'Issues',
-                value: documents.filter((d) => d.status === 'issue').length,
-                color: '#C62828',
-              },
+              { label: t.statTotal, value: totalDocs, color: '#1A1D23' },
+              { label: t.statRequired, value: documents.filter((d) => d.status === 'required').length, color: '#E65100' },
+              { label: t.statUploaded, value: documents.filter((d) => d.status === 'uploaded').length, color: '#2E7D32' },
+              { label: t.statVerified, value: documents.filter((d) => d.status === 'verified').length, color: '#85CAE2' },
+              { label: t.statIssues, value: documents.filter((d) => d.status === 'issue').length, color: '#C62828' },
             ].map((stat) => (
               <div key={stat.label}>
                 <div style={{ fontSize: '11px', color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
