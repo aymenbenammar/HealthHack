@@ -146,9 +146,37 @@ async def analyze_document(
         print(str(exc))
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
 
+    # If the caller specified a doc_type, verify the LLM agrees.
+    # Return a mismatch issue without saving when they don't match.
+    llm_class = result.get("doc_class", "UNKNOWN")
+    if doc_type and llm_class not in (doc_type, "UNKNOWN"):
+        return {
+            "doc_class": llm_class,
+            "confidence": result.get("confidence", 0),
+            "metadata": {},
+            "formal_flags": {},
+            "rule_compliance": [],
+            "issues": [
+                {
+                    "code": "WRONG_DOCUMENT_TYPE",
+                    "severity": "critical",
+                    "message": (
+                        f"The uploaded document appears to be '{llm_class}', "
+                        f"but you selected '{doc_type}'. "
+                        "Please upload the correct document."
+                    ),
+                    "field": None,
+                }
+            ],
+            "tips": [
+                f"Make sure you are uploading a '{doc_type}' document before submitting."
+            ],
+            "bundesland_note": None,
+        }
+
     # Determine save folder: prefer the explicit doc_type from the frontend,
     # fall back to what the LLM classified, then to UNKNOWN.
-    folder_name = doc_type or result.get("doc_class") or "UNKNOWN"
+    folder_name = doc_type or llm_class or "UNKNOWN"
     doc_dir = RESOURCES_DIR / folder_name
     doc_dir.mkdir(parents=True, exist_ok=True)
 
