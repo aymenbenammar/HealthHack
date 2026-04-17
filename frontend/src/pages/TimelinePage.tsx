@@ -11,6 +11,7 @@ import { getTranslatedDocument } from '../i18n/documentTranslations';
 
 const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
   const { t } = useLanguage();
+  if (status === 'required') return null;
   const configs: Record<DocStatus, { label: string; bg: string; color: string; border: string }> = {
     required: { label: t.statusRequired, bg: '#FFF3E0', color: '#E65100', border: '#FFB74D' },
     uploaded: { label: t.statusUploaded, bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7' },
