@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import AIResultPanel from '../components/AIResultPanel';
-import { getDocumentById } from '../data/documents';
+import { getDocumentById, phaseConfig, documents } from '../data/documents';
 import { DocStatus, AIAnalysisResult } from '../types';
 import { analyzeDocument } from '../api/analyzeDocument';
+import { getSavedResults, SavedEntry } from '../api/getSavedResults';
 import { useLanguage } from '../i18n/LanguageContext';
 import { categoryTranslationKey } from '../i18n/translations';
 import { getTranslatedDocument } from '../i18n/documentTranslations';
@@ -112,6 +113,7 @@ const InfoCard: React.FC<{ title: string; children: React.ReactNode }> = ({ titl
 const DocumentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t, lang } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -120,8 +122,17 @@ const DocumentDetailPage: React.FC = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const { t, lang } = useLanguage();
+  const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+
   const doc = id ? getDocumentById(id) : undefined;
+
+  useEffect(() => {
+    if (!doc) return;
+    getSavedResults(doc.docClass)
+      .then(setSavedEntries)
+      .catch(() => setSavedEntries([]));
+  }, [doc?.docClass]);
   const tDoc = doc ? getTranslatedDocument(doc, lang) : undefined;
 
   if (!doc) {
@@ -183,8 +194,9 @@ const DocumentDetailPage: React.FC = () => {
     setAnalysisError(null);
     setAnalysisResult(null);
     try {
-      const result = await analyzeDocument(selectedFile);
+      const result = await analyzeDocument(selectedFile, doc.docClass);
       setAnalysisResult(result);
+      getSavedResults(doc.docClass).then(setSavedEntries).catch(() => {});
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
@@ -303,7 +315,84 @@ const DocumentDetailPage: React.FC = () => {
                   </button>}
                 </InfoCard>
 
-{/* Templates */}
+{/* Preparation Overview */}
+                {(doc.howToGet || doc.prepTimeDays != null || doc.phase != null) && (() => {
+                  const phase = doc.phase;
+                  const cfg = phase ? phaseConfig[phase] : null;
+                  const prepWeeks = doc.prepTimeDays
+                    ? doc.prepTimeDays >= 56
+                      ? `~${Math.round(doc.prepTimeDays / 7)} weeks`
+                      : doc.prepTimeDays >= 14
+                      ? `~${Math.round(doc.prepTimeDays / 7)} weeks`
+                      : doc.prepTimeDays === 1
+                      ? '1 day'
+                      : `~${doc.prepTimeDays} days`
+                    : null;
+                  const depDocs = (doc.dependencies ?? []).map(depId => documents.find(d => d.id === depId)).filter(Boolean);
+
+                  return (
+                    <InfoCard title="Preparation Overview">
+                      {/* Phase + time badges */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                        {cfg && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                            <span style={{ fontSize: '10px' }}>●</span> {cfg.label}
+                          </span>
+                        )}
+                        {prepWeeks && (
+                          <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#F7F8FA', color: '#5F6B7A', border: '1px solid #E0E4EA' }}>
+                            Prep time: {prepWeeks}
+                          </span>
+                        )}
+                        {doc.maxAgeDays != null && (
+                          <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#FFF8E1', color: '#E65100', border: '1px solid #FFB74D' }}>
+                            Valid for: {doc.maxAgeDays} days
+                          </span>
+                        )}
+                      </div>
+
+                      {/* How to get */}
+                      {doc.howToGet && (
+                        <div style={{ marginBottom: '14px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>How to Obtain</div>
+                          <p style={{ fontSize: '13px', color: '#3D4651', lineHeight: '1.65', margin: 0 }}>{doc.howToGet}</p>
+                        </div>
+                      )}
+
+                      {/* Dependencies */}
+                      {depDocs.length > 0 && (
+                        <div style={{ marginBottom: '14px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Requires First</div>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {depDocs.map(dep => dep && (
+                              <button
+                                key={dep.id}
+                                onClick={() => navigate(`/documents/${dep.id}`)}
+                                style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#F0F2F5', color: '#1A1D23', border: '1px solid #E0E4EA', cursor: 'pointer' }}
+                              >
+                                {dep.title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Also required for */}
+                      {doc.processes && doc.processes.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Also Required For</div>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {doc.processes.map(p => (
+                              <span key={p} style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, background: '#EBF3FF', color: '#1565C0', border: '1px solid #BFDBFE' }}>{p}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </InfoCard>
+                  );
+                })()}
+
+                {/* Templates */}
                 {tDoc!.templates && tDoc!.templates.length > 0 && (
                   <InfoCard title={t.templateInfoLabel}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -707,6 +796,127 @@ const DocumentDetailPage: React.FC = () => {
             {analysisResult && (
               <div style={{ marginTop: '20px' }}>
                 <AIResultPanel result={analysisResult} />
+              </div>
+            )}
+
+            {/* Previous Results */}
+            {savedEntries.length > 0 && (
+              <div
+                style={{
+                  marginTop: '28px',
+                  background: '#ffffff',
+                  border: '1px solid #E0E4EA',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '14px 24px',
+                    borderBottom: '1px solid #F0F2F5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                >
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23', margin: 0 }}>
+                    Previous Analyses
+                  </h3>
+                  <span
+                    style={{
+                      background: '#E0E4EA',
+                      color: '#5F6B7A',
+                      borderRadius: '20px',
+                      padding: '1px 8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {savedEntries.length}
+                  </span>
+                </div>
+
+                {savedEntries.map((entry) => {
+                  const key = entry.result_filename;
+                  const isOpen = expandedEntry === key;
+                  const criticalCount = entry.result?.issues?.filter(i => i.severity === 'critical').length ?? 0;
+                  const warningCount = entry.result?.issues?.filter(i => i.severity === 'warning').length ?? 0;
+                  const savedDate = new Date(entry.saved_at);
+                  const dateLabel = savedDate.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+                  const timeLabel = savedDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+                  return (
+                    <div key={key} style={{ borderBottom: '1px solid #F0F2F5' }}>
+                      {/* Row header */}
+                      <div
+                        onClick={() => setExpandedEntry(isOpen ? null : key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '14px',
+                          padding: '13px 24px',
+                          cursor: 'pointer',
+                          transition: 'background 0.12s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#F7F8FA')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        {/* Chevron */}
+                        <svg
+                          width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="#9AA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+
+                        {/* Filename */}
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {entry.filename ?? entry.result_filename}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9AA3AF', marginTop: '2px' }}>
+                            {dateLabel} · {timeLabel}
+                          </div>
+                        </div>
+
+                        {/* Confidence */}
+                        <div style={{ fontSize: '12px', color: '#5F6B7A', whiteSpace: 'nowrap' }}>
+                          {entry.result?.confidence != null
+                            ? `${Math.round(entry.result.confidence * 100)}% confidence`
+                            : ''}
+                        </div>
+
+                        {/* Issue badges */}
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                          {criticalCount > 0 && (
+                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FFEBEE', color: '#C62828', border: '1px solid #EF9A9A' }}>
+                              {criticalCount} critical
+                            </span>
+                          )}
+                          {warningCount > 0 && (
+                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FFF8E1', color: '#E65100', border: '1px solid #FFB74D' }}>
+                              {warningCount} warning
+                            </span>
+                          )}
+                          {criticalCount === 0 && warningCount === 0 && (
+                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#E8F5E9', color: '#2E7D32', border: '1px solid #A5D6A7' }}>
+                              OK
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded result */}
+                      {isOpen && (
+                        <div style={{ padding: '0 24px 20px' }}>
+                          <AIResultPanel result={entry.result} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </main>

@@ -17,6 +17,13 @@ export interface AppDocument {
   isUserFilledForm?: boolean;
   expires?: string;
   lastUpdated?: string;
+  // Preparation overview
+  howToGet?: string;
+  prepTimeDays?: number;       // rough estimate
+  maxAgeDays?: number | null;  // validity period; null = no expiry
+  phase?: 1 | 2 | 3 | 4;      // timeline phase
+  processes?: string[];        // other processes that also require this doc
+  dependencies?: string[];     // doc IDs that must be obtained first
 }
 
 export interface AIIssue {

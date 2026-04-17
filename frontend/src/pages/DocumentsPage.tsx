@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import { documents, categories, getDocumentsByCategory } from '../data/documents';
+import { documents, categories, getDocumentsByCategory, phaseConfig, getDocumentsByPhase } from '../data/documents';
 import { DocStatus } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { categoryTranslationKey } from '../i18n/translations';
@@ -41,7 +41,7 @@ const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
 const DocumentsPage: React.FC = () => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'documents' | 'translations'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'translations' | 'timeline'>('documents');
   const totalDocs = documents.length;
 
   return (
@@ -137,6 +137,7 @@ const DocumentsPage: React.FC = () => {
                 onClick={() => setActiveTab('translations')}
                 style={{
                   padding: '14px 4px',
+                  marginRight: '28px',
                   background: 'transparent',
                   border: 'none',
                   borderBottom: activeTab === 'translations' ? '2px solid #85CAE2' : '2px solid transparent',
@@ -165,24 +166,106 @@ const DocumentsPage: React.FC = () => {
                   0
                 </span>
               </button>
+              <button
+                onClick={() => setActiveTab('timeline')}
+                style={{
+                  padding: '14px 4px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'timeline' ? '2px solid #85CAE2' : '2px solid transparent',
+                  color: activeTab === 'timeline' ? '#85CAE2' : '#5F6B7A',
+                  fontSize: '14px',
+                  fontWeight: activeTab === 'timeline' ? 600 : 400,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'color 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Preparation Timeline
+              </button>
             </div>
 
             {/* Tab content */}
             {activeTab === 'translations' ? (
-              <div
-                style={{
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: '#9AA3AF',
-                }}
-              >
+              <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9AA3AF' }}>
                 <div style={{ fontSize: '36px', marginBottom: '12px' }}>📄</div>
-                <div style={{ fontSize: '16px', fontWeight: 600, color: '#5F6B7A', marginBottom: '6px' }}>
-                  {t.noTranslations}
-                </div>
-                <div style={{ fontSize: '14px' }}>
-                  {t.noTranslationsHint}
-                </div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: '#5F6B7A', marginBottom: '6px' }}>No translations yet</div>
+                <div style={{ fontSize: '14px' }}>Upload documents and request certified translations here.</div>
+              </div>
+            ) : activeTab === 'timeline' ? (
+              <div style={{ padding: '28px 24px' }}>
+                {([1, 2, 3, 4] as const).map((phase) => {
+                  const cfg = phaseConfig[phase];
+                  const phaseDocs = getDocumentsByPhase(phase);
+                  return (
+                    <div key={phase} style={{ marginBottom: '32px' }}>
+                      {/* Phase header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: cfg.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>
+                          {phase}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23' }}>{cfg.label}</div>
+                          <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '1px' }}>{cfg.sublabel}</div>
+                        </div>
+                      </div>
+
+                      {/* Connector line + cards */}
+                      <div style={{ display: 'flex', gap: '0' }}>
+                        {/* Vertical line */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '20px' }}>
+                          <div style={{ width: '2px', flex: 1, background: '#E0E4EA', marginLeft: '15px' }} />
+                        </div>
+
+                        {/* Cards grid */}
+                        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px', paddingBottom: '8px' }}>
+                          {phaseDocs.map((doc) => {
+                            const prepWeeks = doc.prepTimeDays
+                              ? doc.prepTimeDays >= 14
+                                ? `~${Math.round(doc.prepTimeDays / 7)}w`
+                                : doc.prepTimeDays === 1 ? '1 day' : `~${doc.prepTimeDays}d`
+                              : null;
+                            return (
+                              <div
+                                key={doc.id}
+                                onClick={() => navigate(`/documents/${doc.id}`)}
+                                style={{ background: '#fff', border: `1px solid ${cfg.border}`, borderLeft: `3px solid ${cfg.color}`, borderRadius: '8px', padding: '12px 14px', cursor: 'pointer', transition: 'box-shadow 0.12s' }}
+                                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)')}
+                                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', lineHeight: '1.4' }}>{doc.title}</div>
+                                  <StatusBadge status={doc.status} />
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#9AA3AF', marginTop: '4px' }}>{doc.category.replace(/^[A-Z]\) /, '')}</div>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                  {prepWeeks && (
+                                    <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: cfg.bg, color: cfg.color }}>
+                                      {prepWeeks}
+                                    </span>
+                                  )}
+                                  {doc.maxAgeDays != null && (
+                                    <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#FFF8E1', color: '#E65100' }}>
+                                      valid {doc.maxAgeDays}d
+                                    </span>
+                                  )}
+                                  {(doc.dependencies ?? []).length > 0 && (
+                                    <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#F0F2F5', color: '#5F6B7A' }}>
+                                      {doc.dependencies!.length} prereq{doc.dependencies!.length > 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div>

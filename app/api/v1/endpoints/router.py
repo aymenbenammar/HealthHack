@@ -1,8 +1,14 @@
-from typing import Any, Dict, Optional
+import json
+import pathlib
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 
 from app.services.llm_client import get_llm_client
+
+RESOURCES_DIR = pathlib.Path(__file__).resolve().parents[4] / "resources"
 
 router = APIRouter()
 
@@ -117,6 +123,7 @@ async def analyze_document(
     file: UploadFile = File(...),
     model: Optional[str] = Form(default=None),
     language: Optional[str] = Form(default='en'),
+    doc_type: Optional[str] = Form(default=None),
 ) -> Dict[str, Any]:
     if file.content_type not in _ALLOWED_TYPES:
         raise HTTPException(
@@ -126,10 +133,9 @@ async def analyze_document(
 
     file_bytes = await file.read()
 
-
     try:
         llm_client = get_llm_client()
-        return llm_client.analyze_document(
+        result = llm_client.analyze_document(
             file_bytes=file_bytes,
             filename=file.filename or "document",
             prompt=PROMPT,
@@ -139,3 +145,78 @@ async def analyze_document(
     except Exception as exc:
         print(str(exc))
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    # Determine save folder: prefer the explicit doc_type from the frontend,
+    # fall back to what the LLM classified, then to UNKNOWN.
+    folder_name = doc_type or result.get("doc_class") or "UNKNOWN"
+    doc_dir = RESOURCES_DIR / folder_name
+    doc_dir.mkdir(parents=True, exist_ok=True)
+
+    original_name = pathlib.Path(file.filename or "document")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_stem = original_name.stem
+    file_suffix = original_name.suffix or ".pdf"
+    saved_filename = f"{file_stem}_{timestamp}{file_suffix}"
+    result_filename = f"{file_stem}_{timestamp}_result.json"
+
+    (doc_dir / saved_filename).write_bytes(file_bytes)
+    (doc_dir / result_filename).write_text(
+        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    result["_saved"] = {
+        "doc_type": folder_name,
+        "filename": saved_filename,
+        "result_filename": result_filename,
+    }
+    return result
+
+
+def _entries_for_dir(type_dir: pathlib.Path) -> List[Dict[str, Any]]:
+    """Return all saved entries inside a single doc-type directory."""
+    entries: List[Dict[str, Any]] = []
+    for result_file in sorted(type_dir.glob("*_result.json"), reverse=True):
+        stem = result_file.stem[: -len("_result")]  # strip _result suffix
+        source_files = [
+            f for f in type_dir.iterdir()
+            if f.stem == stem and f.suffix != ".json"
+        ]
+        try:
+            result_data = json.loads(result_file.read_text(encoding="utf-8"))
+        except Exception:
+            result_data = {}
+        entries.append({
+            "doc_type": type_dir.name,
+            "filename": source_files[0].name if source_files else None,
+            "result_filename": result_file.name,
+            "saved_at": datetime.fromtimestamp(result_file.stat().st_mtime).isoformat(),
+            "result": result_data,
+        })
+    return entries
+
+
+@router.get("/documents/saved", summary="List all saved documents grouped by type")
+async def list_saved_documents() -> List[Dict[str, Any]]:
+    if not RESOURCES_DIR.exists():
+        return []
+    entries: List[Dict[str, Any]] = []
+    for type_dir in sorted(RESOURCES_DIR.iterdir()):
+        if type_dir.is_dir():
+            entries.extend(_entries_for_dir(type_dir))
+    return entries
+
+
+@router.get("/documents/saved/{doc_type}", summary="List saved documents for a specific document type")
+async def list_saved_documents_by_type(doc_type: str) -> List[Dict[str, Any]]:
+    type_dir = RESOURCES_DIR / doc_type
+    if not type_dir.exists() or not type_dir.is_dir():
+        return []
+    return _entries_for_dir(type_dir)
+
+
+@router.get("/documents/saved/{doc_type}/{filename}", summary="Download a saved document file")
+async def get_saved_document(doc_type: str, filename: str) -> FileResponse:
+    file_path = RESOURCES_DIR / doc_type / filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    return FileResponse(path=str(file_path), filename=filename)

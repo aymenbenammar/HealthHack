@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import llm
+from app.api.v1.endpoints import router
 
 api_router = APIRouter()
 
-api_router.include_router(llm.router, prefix="/llm", tags=["llm"])
+api_router.include_router(router.router, prefix="/llm", tags=["llm"])

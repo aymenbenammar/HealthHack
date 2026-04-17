@@ -17,7 +17,6 @@ from datetime import date as _date
 from groq import Groq
 from anthropic import Anthropic
 from app.core.config import settings
-from openai import OpenAI
 from app.services.utils import split_pdf_to_images
 
 # ── Compliance rules per doc-class ────────────────────────────────────────────
