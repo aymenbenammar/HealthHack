@@ -135,12 +135,6 @@ const IssuesSection: React.FC<{ issues: AIIssue[] }> = ({ issues }) => {
                 </span>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '12px', color: colors.text, fontWeight: 700, fontFamily: 'monospace', marginBottom: '3px' }}>
-                  {issue.code}
-                  {issue.field && (
-                    <span style={{ fontWeight: 400, opacity: 0.8 }}> · {issue.field}</span>
-                  )}
-                </div>
                 <div style={{ fontSize: '13px', color: colors.text }}>{issue.message}</div>
               </div>
             </div>
@@ -182,10 +176,7 @@ const RuleComplianceSection: React.FC<{ rules: RuleCompliance[] }> = ({ rules })
               {ruleStatusIcon(r.status)}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '13px', color: '#1A1D23', fontWeight: 500 }}>{r.rule}</div>
-              {r.evidence && (
-                <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '2px' }}>{r.evidence}</div>
-              )}
+              <div style={{ fontSize: '13px', color: '#1A1D23' }}>{r.evidence || r.rule}</div>
             </div>
             <div
               style={{
@@ -262,10 +253,6 @@ const CrossDocSection: React.FC<{ issues: CrossDocIssue[] }> = ({ issues }) => {
               borderRadius: '8px',
             }}
           >
-            <div style={{ fontSize: '12px', color: '#F57F17', fontWeight: 700, fontFamily: 'monospace', marginBottom: '3px' }}>
-              {issue.code}
-              {issue.field && <span style={{ fontWeight: 400 }}> · {issue.field}</span>}
-            </div>
             <div style={{ fontSize: '13px', color: '#795548' }}>{issue.message}</div>
           </div>
         ))}
