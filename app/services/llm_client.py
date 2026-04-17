@@ -420,8 +420,8 @@ RETURN ONLY valid JSON — no markdown fences, no explanation:
                 "code": "NAME_MISMATCH",
                 "severity": "critical",
                 "message": (
-                    f"{len(name_map)} verschiedene Namen in den hochgeladenen Dokumenten gefunden. "
-                    "Bitte prüfen Sie, ob ein Namensänderungsdokument erforderlich ist."
+                    f"{len(name_map)} We found several different names in the uploaded documents. "
+                    "Please check whether a name change document is required."
                 ),
                 "field": "metadata.full_name",
                 "details": names_summary,
