@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { documents, categories, getDocumentsByCategory, phaseConfig, getDocumentsByPhase } from '../data/documents';
+import { getSubmissionStatus, SUBMISSION_STEPS, stepIndex } from '../utils/submissionStatus';
 import { DocStatus } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { categoryTranslationKey } from '../i18n/translations';
@@ -228,6 +229,8 @@ const DocumentsPage: React.FC = () => {
                                 ? `~${Math.round(doc.prepTimeDays / 7)}w`
                                 : doc.prepTimeDays === 1 ? '1 day' : `~${doc.prepTimeDays}d`
                               : null;
+                            const subSt = getSubmissionStatus(doc.id);
+                            const subStep = SUBMISSION_STEPS[stepIndex(subSt)];
                             return (
                               <div
                                 key={doc.id}
@@ -257,6 +260,11 @@ const DocumentsPage: React.FC = () => {
                                       {doc.dependencies!.length} prereq{doc.dependencies!.length > 1 ? 's' : ''}
                                     </span>
                                   )}
+                                </div>
+                                {/* Submission status strip */}
+                                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F0F2F5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: subStep.color, flexShrink: 0 }} />
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: subStep.color }}>{subStep.label}</span>
                                 </div>
                               </div>
                             );

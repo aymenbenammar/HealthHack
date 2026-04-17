@@ -22,6 +22,11 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation', 'Marriage Registration', 'Visa Applications'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Apostille Information (Hague Conference)', url: 'https://www.hcch.net/en/instruments/conventions/status-table/?cid=41', description: 'Check if your country requires an apostille on foreign documents.' },
+      { label: 'Certified Translators Directory (BDÜ)', url: 'https://www.bdue.de/en/find-a-translator/', description: 'Find a sworn German translator for your birth certificate.' },
+      { label: 'NiZzA Document Requirements', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'Official NiZzA checklist for Approbation documents.' },
+    ],
   },
   {
     id: 'passport',
@@ -39,6 +44,10 @@ export const documents: AppDocument[] = [
     phase: 3,
     processes: ['Approbation', 'Visa Applications', 'Bank Account Opening', 'Residence Permit'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'German Embassy Finder', url: 'https://www.auswaertiges-amt.de/en/about-us/auslandsvertretungen/deutsche-auslandsvertretungen', description: 'Find the German embassy or consulate in your country.' },
+      { label: 'EU Passport / ID Requirements', url: 'https://europa.eu/youreurope/citizens/travel/entry-exit/eu-citizen/index_en.htm', description: 'EU rules on travel documents and ID cards.' },
+    ],
   },
   {
     id: 'name-change',
@@ -59,6 +68,10 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Apostille & Legalisation Guide', url: 'https://www.hcch.net/en/instruments/conventions/status-table/?cid=41', description: 'How to legalise foreign civil documents for use in Germany.' },
+      { label: 'NiZzA Document Requirements', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'Official checklist including proof of name change.' },
+    ],
   },
   {
     id: 'cv-signed',
@@ -77,6 +90,10 @@ export const documents: AppDocument[] = [
     phase: 2,
     processes: ['Approbation', 'Job Applications'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'BAMF Sample CV Template', url: 'https://www.bamf.de/SharedDocs/Anlagen/DE/Beratung/Foerderprogramme/muster-lebenslauf.pdf', description: 'German-language CV template accepted by authorities.' },
+      { label: 'NiZzA CV Requirements', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'Specific requirements for the CV in the Approbation process.' },
+    ],
   },
 
   // B) University Documents
@@ -99,6 +116,11 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation', 'Medical Chamber Registration', 'Specialist Title Recognition'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'anabin – Foreign Qualifications Database', url: 'https://anabin.kmk.org/anabin.html', description: 'Check how your degree is classified in Germany.' },
+      { label: 'KMK Recognition of Foreign Qualifications', url: 'https://www.kmk.org/themen/anerkennung-auslaendischer-abschluesse.html', description: 'Official KMK portal for degree recognition information.' },
+      { label: 'NiZzA – Required Education Documents', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'What counts as proof of medical education for the NiZzA.' },
+    ],
   },
   {
     id: 'arbeitszeugnis',
@@ -119,6 +141,9 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'NiZzA Practical Training Requirements', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'What constitutes acceptable proof of practical medical training.' },
+    ],
   },
   {
     id: 'curriculum',
@@ -136,6 +161,10 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'anabin – University Database', url: 'https://anabin.kmk.org/anabin.html', description: 'Verify that your university is recognised in Germany.' },
+      { label: 'NiZzA Document Checklist', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'Official list of university documents required for Approbation.' },
+    ],
   },
   {
     id: 'promotionsurkunde',
@@ -153,6 +182,9 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation', 'Medical Chamber Registration'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Ärztekammer Niedersachsen – Doctorate Recognition', url: 'https://www.aekn.de/aerzte/weiterbildung/', description: 'Contact for questions about doctorate title recognition in Lower Saxony.' },
+    ],
   },
 
   // C) Professional Documents
@@ -175,6 +207,10 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation', 'Medical Chamber Registration'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Bundesärztekammer – Medical Licensing', url: 'https://www.bundesaerztekammer.de/aerzte/arzt-im-beruf/auslaendische-aerzte/', description: 'Federal Medical Chamber info on foreign doctor licensing in Germany.' },
+      { label: 'WHO iRegulate – Medical Regulators Directory', url: 'https://iregulate.who.int/', description: 'Find the medical licensing authority in your home country.' },
+    ],
   },
   {
     id: 'good-standing',
@@ -195,6 +231,10 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Bundesärztekammer – Good Standing Template', url: 'https://www.bundesaerztekammer.de/aerzte/arzt-im-beruf/auslaendische-aerzte/', description: 'Template letter for requesting a Good Standing certificate.' },
+      { label: 'NiZzA – Unbedenklichkeitsbescheinigung', url: 'https://www.nizza.de/antragstellung/unterlagen/', description: 'NiZzA requirements for the Good Standing certificate.' },
+    ],
   },
 
   // D) German Administrative Documents
@@ -225,6 +265,11 @@ export const documents: AppDocument[] = [
       'eu-fuehrungszeugnis', 'heimat-fuehrungszeugnis',
       'meldebescheinigung', 'aerztliche-bescheinigung',
     ],
+    usefulLinks: [
+      { label: 'NiZzA – Official Application Portal', url: 'https://www.nizza.de/antragstellung/', description: 'Download all official forms and submit your Approbation application.' },
+      { label: 'NiZzA – FAQ for Applicants', url: 'https://www.nizza.de/service/faq/', description: 'Frequently asked questions about the Approbation process in Lower Saxony.' },
+      { label: 'Bundesärztekammer – Approbation Overview', url: 'https://www.bundesaerztekammer.de/aerzte/arzt-im-beruf/auslaendische-aerzte/approbation/', description: 'Federal overview of the Approbation process for foreign doctors.' },
+    ],
   },
   {
     id: 'nachweis-zustaendigkeit',
@@ -242,6 +287,9 @@ export const documents: AppDocument[] = [
     phase: 3,
     processes: ['Approbation'],
     dependencies: ['meldebescheinigung'],
+    usefulLinks: [
+      { label: 'NiZzA – Responsible Authority Lookup', url: 'https://www.nizza.de/antragstellung/zustaendigkeit/', description: 'Find which Approbationsbehörde is responsible for your application.' },
+    ],
   },
   {
     id: 'meldebescheinigung',
@@ -259,6 +307,10 @@ export const documents: AppDocument[] = [
     phase: 3,
     processes: ['Approbation', 'Bank Account Opening', 'Residence Permit', 'Proof of Jurisdiction'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Service Portal – Bürgeramt Finder', url: 'https://service.bund.de/IMPORTE/Portalverbund/InfoPrintout.do?n=1', description: 'Find your nearest Bürgeramt to register your address.' },
+      { label: 'Anmeldung (Registration) – How it works', url: 'https://www.make-it-in-germany.com/en/living-in-germany/housing/register-address', description: 'Step-by-step guide to registering your address in Germany.' },
+    ],
   },
   {
     id: 'eu-fuehrungszeugnis',
@@ -279,6 +331,10 @@ export const documents: AppDocument[] = [
     phase: 3,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Bundesamt für Justiz – Führungszeugnis', url: 'https://www.bundesjustizamt.de/DE/Themen/ZentraleRegister/Fuehrungszeugnis/Fuehrungszeugnis_node.html', description: 'Official portal to apply for a German criminal record certificate (Belegart O).' },
+      { label: 'Online Application for Führungszeugnis', url: 'https://www.fuehrungszeugnis.bund.de/', description: 'Apply for your Führungszeugnis online (requires German ID or registration).' },
+    ],
   },
   {
     id: 'heimat-fuehrungszeugnis',
@@ -296,6 +352,10 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'ACRO – Criminal Records UK', url: 'https://www.acro.police.uk/police_certificates.aspx', description: 'For applicants from the UK: how to get a criminal record certificate.' },
+      { label: 'German Embassy – Home Country Certificate', url: 'https://www.auswaertiges-amt.de/en/about-us/auslandsvertretungen/deutsche-auslandsvertretungen', description: 'Contact your home country\'s German embassy for guidance on obtaining certificates.' },
+    ],
   },
   {
     id: 'aerztliche-bescheinigung',
@@ -316,6 +376,10 @@ export const documents: AppDocument[] = [
     phase: 3,
     processes: ['Approbation'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'NiZzA – Health Certificate Template', url: 'https://www.nizza.de/antragstellung/vordrucke/', description: 'Download the official health certificate template (ärztliche Bescheinigung) for NiZzA.' },
+      { label: 'Jameda – Find a Doctor Near You', url: 'https://www.jameda.de/', description: 'Find a German GP (Hausarzt) to issue your health certificate.' },
+    ],
   },
 
   // E) Language Certificates
@@ -338,6 +402,11 @@ export const documents: AppDocument[] = [
     phase: 1,
     processes: ['Approbation', 'Fachsprachprüfung (FSP) Registration', 'Residence Permit Extension'],
     dependencies: [],
+    usefulLinks: [
+      { label: 'Goethe-Institut – German Courses & Exams', url: 'https://www.goethe.de/en/spr/kup/prf/prf/b2.html', description: 'Register for the Goethe B2 exam, widely accepted by German authorities.' },
+      { label: 'telc – B2 Exam Registration', url: 'https://www.telc.net/en/candidates/language-examinations/examinations/detail/telc-deutsch-b2.html', description: 'telc B2 exam dates and registration.' },
+      { label: 'TestDaF – Academic German Test', url: 'https://www.testdaf.de/en/', description: 'TestDaF is accepted as B2 equivalent by many Approbation authorities.' },
+    ],
   },
   {
     id: 'fsp-cert',
@@ -359,6 +428,11 @@ export const documents: AppDocument[] = [
     phase: 2,
     processes: ['Approbation', 'Berufserlaubnis (Temporary Practice Permit)'],
     dependencies: ['b2-cert'],
+    usefulLinks: [
+      { label: 'Ärztekammer Niedersachsen – FSP Info', url: 'https://www.aekn.de/aerzte/fachsprachpruefung/', description: 'Official FSP registration, dates, and preparation materials for Lower Saxony.' },
+      { label: 'FSP Preparation Guide (BLÄK)', url: 'https://www.blaek.de/arzt-sein/fachsprachpruefung/', description: 'Bavaria\'s medical chamber FSP guide — useful preparation reference.' },
+      { label: 'Bundesärztekammer – FSP Overview', url: 'https://www.bundesaerztekammer.de/aerzte/arzt-im-beruf/auslaendische-aerzte/fachsprachpruefung/', description: 'National overview of the medical language examination requirements.' },
+    ],
   },
 ];
 

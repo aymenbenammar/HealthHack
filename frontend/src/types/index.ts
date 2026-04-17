@@ -5,6 +5,12 @@ export interface DocumentTemplate {
   language: string;
 }
 
+export interface UsefulLink {
+  label: string;
+  url: string;
+  description: string;
+}
+
 export interface AppDocument {
   id: string;
   title: string;
@@ -24,6 +30,7 @@ export interface AppDocument {
   phase?: 1 | 2 | 3 | 4;      // timeline phase
   processes?: string[];        // other processes that also require this doc
   dependencies?: string[];     // doc IDs that must be obtained first
+  usefulLinks?: UsefulLink[];  // where to get or learn more about this document
 }
 
 export interface AIIssue {

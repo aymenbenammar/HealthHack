@@ -44,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
   const { t } = useLanguage();
 
   const navItems = [
-    { label: t.myRoadmap, path: '/roadmap', icon: <RoadmapIcon /> },
+    { label: t.myRoadmap, path: '/timeline', icon: <RoadmapIcon /> },
     { label: t.myDocuments, path: '/documents', icon: <DocumentsIcon /> },
     { label: t.community, path: '/community', icon: <CommunityIcon /> },
     { label: t.services, path: '/services', icon: <ServicesIcon /> },

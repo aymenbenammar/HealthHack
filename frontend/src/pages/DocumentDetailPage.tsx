@@ -7,6 +7,7 @@ import { getDocumentById, phaseConfig, documents } from '../data/documents';
 import { DocStatus, AIAnalysisResult } from '../types';
 import { analyzeDocument } from '../api/analyzeDocument';
 import { getSavedResults, SavedEntry } from '../api/getSavedResults';
+import { getSubmissionStatus, setSubmissionStatus, SUBMISSION_STEPS, SubmissionStatus, stepIndex } from '../utils/submissionStatus';
 import { useLanguage } from '../i18n/LanguageContext';
 import { categoryTranslationKey } from '../i18n/translations';
 import { getTranslatedDocument } from '../i18n/documentTranslations';
@@ -124,6 +125,15 @@ const DocumentDetailPage: React.FC = () => {
 
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<SubmissionStatus>(() =>
+    id ? getSubmissionStatus(id) : 'not_submitted'
+  );
+
+  const handleSubStatus = (s: SubmissionStatus) => {
+    if (!id) return;
+    setSubmissionStatus(id, s);
+    setSubStatus(s);
+  };
 
   const doc = id ? getDocumentById(id) : undefined;
 
@@ -148,7 +158,7 @@ const DocumentDetailPage: React.FC = () => {
               {t.docNotFoundHint}
             </p>
             <button
-              onClick={() => navigate('/documents')}
+              onClick={() => navigate('/timeline')}
               style={{
                 padding: '10px 20px',
                 background: '#85CAE2',
@@ -228,7 +238,7 @@ const DocumentDetailPage: React.FC = () => {
           <main style={{ marginTop: '60px', padding: '28px 32px', flex: 1 }}>
             {/* Breadcrumb */}
             <button
-              onClick={() => navigate('/documents')}
+              onClick={() => navigate('/timeline')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -443,10 +453,80 @@ const DocumentDetailPage: React.FC = () => {
                     </div>
                   </InfoCard>
                 )}
+
+                {/* Useful Links */}
+                {doc.usefulLinks && doc.usefulLinks.length > 0 && (
+                  <InfoCard title="Useful Links">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {doc.usefulLinks.map((link, i) => (
+                        <a
+                          key={i}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', background: '#F7F8FA', border: '1px solid #E0E4EA', borderRadius: '8px', textDecoration: 'none', transition: 'background 0.12s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#EBF3FF')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '#F7F8FA')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#85CAE2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1565C0', marginBottom: '2px' }}>{link.label}</div>
+                            <div style={{ fontSize: '12px', color: '#5F6B7A', lineHeight: '1.5' }}>{link.description}</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </InfoCard>
+                )}
               </div>
 
               {/* Right column — Upload */}
               <div>
+                {/* Submission Status Bar */}
+                <div style={{ background: '#fff', border: '1px solid #E0E4EA', borderRadius: '12px', padding: '18px 20px', marginBottom: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>
+                    Submission Status
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {SUBMISSION_STEPS.map((step, i) => {
+                      const currentIdx = stepIndex(subStatus);
+                      const isActive = i === currentIdx;
+                      const isDone = i < currentIdx;
+                      return (
+                        <React.Fragment key={step.key}>
+                          {/* Step */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, cursor: 'pointer' }} onClick={() => handleSubStatus(step.key)}>
+                            <div style={{
+                              width: '28px', height: '28px', borderRadius: '50%',
+                              background: isDone || isActive ? step.color : '#E0E4EA',
+                              border: `2px solid ${isActive ? step.color : isDone ? step.color : '#D0D7E2'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.2s',
+                            }}>
+                              {isDone ? (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                              ) : (
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isActive ? '#fff' : 'transparent' }} />
+                              )}
+                            </div>
+                            <div style={{ fontSize: '11px', fontWeight: isActive ? 700 : 500, color: isActive || isDone ? step.color : '#9AA3AF', marginTop: '5px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              {step.label}
+                            </div>
+                          </div>
+                          {/* Connector */}
+                          {i < SUBMISSION_STEPS.length - 1 && (
+                            <div style={{ height: '2px', flex: 1, background: stepIndex(subStatus) > i ? SUBMISSION_STEPS[i].color : '#E0E4EA', marginBottom: '18px', transition: 'background 0.2s' }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div
                   style={{
                     background: '#ffffff',
