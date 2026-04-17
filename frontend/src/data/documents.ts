@@ -75,7 +75,7 @@ export const documents: AppDocument[] = [
   },
   {
     id: 'cv-signed',
-    title: 'Signed / Curriculum Vitae',
+    title: 'Signed CV / Curriculum Vitae',
     docClass: 'CV_SIGNED',
     category: 'A) Personal Documents',
     status: 'required',

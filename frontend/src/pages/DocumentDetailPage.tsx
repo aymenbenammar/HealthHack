@@ -9,7 +9,7 @@ import { analyzeDocument } from '../api/analyzeDocument';
 import { getSavedResults, SavedEntry } from '../api/getSavedResults';
 import { getSubmissionStatus, setSubmissionStatus, SUBMISSION_STEPS, SubmissionStatus, stepIndex } from '../utils/submissionStatus';
 import { useLanguage } from '../i18n/LanguageContext';
-import { categoryTranslationKey } from '../i18n/translations';
+
 import { getTranslatedDocument } from '../i18n/documentTranslations';
 
 const BackIcon = () => (
@@ -286,7 +286,7 @@ const DocumentDetailPage: React.FC = () => {
               {/* Left column */}
               <div>
                 {/* Description */}
-                <InfoCard title="Description">
+                <InfoCard title={t.descriptionLabel}>
                   <p style={{ fontSize: '14px', color: '#5F6B7A', lineHeight: '1.65' }}>
                     {tDoc!.description}
                   </p>
@@ -321,7 +321,7 @@ const DocumentDetailPage: React.FC = () => {
                       btn.style.boxShadow = 'none';
                     }}
                   >
-                    For step-by-step instructions on your specific document click here.
+                    {t.stepByStepBtn}
                   </button>}
                 </InfoCard>
 
@@ -330,33 +330,31 @@ const DocumentDetailPage: React.FC = () => {
                   const phase = doc.phase;
                   const cfg = phase ? phaseConfig[phase] : null;
                   const prepWeeks = doc.prepTimeDays
-                    ? doc.prepTimeDays >= 56
-                      ? `~${Math.round(doc.prepTimeDays / 7)} weeks`
-                      : doc.prepTimeDays >= 14
-                      ? `~${Math.round(doc.prepTimeDays / 7)} weeks`
+                    ? doc.prepTimeDays >= 14
+                      ? `~${Math.round(doc.prepTimeDays / 7)} ${t.weeksUnit}`
                       : doc.prepTimeDays === 1
-                      ? '1 day'
-                      : `~${doc.prepTimeDays} days`
+                      ? `1 ${t.dayUnit}`
+                      : `~${doc.prepTimeDays} ${t.daysUnit}`
                     : null;
                   const depDocs = (doc.dependencies ?? []).map(depId => documents.find(d => d.id === depId)).filter(Boolean);
 
                   return (
-                    <InfoCard title="Preparation Overview">
+                    <InfoCard title={t.prepOverviewTitle}>
                       {/* Phase + time badges */}
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                         {cfg && (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
-                            <span style={{ fontSize: '10px' }}>●</span> {cfg.label}
+                            <span style={{ fontSize: '10px' }}>●</span> {t[`phase${phase}Label` as keyof typeof t] as string}
                           </span>
                         )}
                         {prepWeeks && (
                           <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#F7F8FA', color: '#5F6B7A', border: '1px solid #E0E4EA' }}>
-                            Prep time: {prepWeeks}
+                            {t.prepTimeLabel} {prepWeeks}
                           </span>
                         )}
                         {doc.maxAgeDays != null && (
                           <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#FFF8E1', color: '#E65100', border: '1px solid #FFB74D' }}>
-                            Valid for: {doc.maxAgeDays} days
+                            {t.validForLabel} {doc.maxAgeDays} {t.daysUnit}
                           </span>
                         )}
                       </div>
@@ -364,15 +362,15 @@ const DocumentDetailPage: React.FC = () => {
                       {/* How to get */}
                       {doc.howToGet && (
                         <div style={{ marginBottom: '14px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>How to Obtain</div>
-                          <p style={{ fontSize: '13px', color: '#3D4651', lineHeight: '1.65', margin: 0 }}>{doc.howToGet}</p>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.howToObtainLabel}</div>
+                          <p style={{ fontSize: '13px', color: '#3D4651', lineHeight: '1.65', margin: 0 }}>{tDoc!.howToGet}</p>
                         </div>
                       )}
 
                       {/* Dependencies */}
                       {depDocs.length > 0 && (
                         <div style={{ marginBottom: '14px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Requires First</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.requiresFirstLabel}</div>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {depDocs.map(dep => dep && (
                               <button
@@ -380,7 +378,7 @@ const DocumentDetailPage: React.FC = () => {
                                 onClick={() => navigate(`/documents/${dep.id}`)}
                                 style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: '#F0F2F5', color: '#1A1D23', border: '1px solid #E0E4EA', cursor: 'pointer' }}
                               >
-                                {dep.title}
+                                {getTranslatedDocument(dep, lang).title}
                               </button>
                             ))}
                           </div>
@@ -390,7 +388,7 @@ const DocumentDetailPage: React.FC = () => {
                       {/* Also required for */}
                       {doc.processes && doc.processes.length > 0 && (
                         <div>
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Also Required For</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#9AA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.alsoRequiredForLabel}</div>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {doc.processes.map(p => (
                               <span key={p} style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, background: '#EBF3FF', color: '#1565C0', border: '1px solid #BFDBFE' }}>{p}</span>
@@ -456,7 +454,7 @@ const DocumentDetailPage: React.FC = () => {
 
                 {/* Useful Links */}
                 {doc.usefulLinks && doc.usefulLinks.length > 0 && (
-                  <InfoCard title="Useful Links">
+                  <InfoCard title={t.usefulLinksTitle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {doc.usefulLinks.map((link, i) => (
                         <a
@@ -702,7 +700,7 @@ const DocumentDetailPage: React.FC = () => {
                       }}
                     >
                       <span style={{ fontSize: '16px' }}>✨</span>
-                      Check with AI
+                      {t.checkWithAI}
                     </button>
                   )}
 
@@ -785,26 +783,21 @@ const DocumentDetailPage: React.FC = () => {
                       ? analysisResult.issues.filter(i => i.severity === 'critical').length === 0
                       : null;
                     const steps: { label: string; state: 'done' | 'failed' | 'pending' }[] = [
-                      { label: 'Upload document', state: selectedFile ? 'done' : 'pending' },
+                      { label: t.checklistUpload, state: selectedFile ? 'done' : 'pending' },
                       {
-                        label: aiPassed === true ? 'AI analysis passed' : aiPassed === false ? 'AI analysis failed' : 'AI analysis',
+                        label: aiPassed === true ? t.checklistAIPassed : aiPassed === false ? t.checklistAIFailed : t.checklistAI,
                         state: aiPassed === true ? 'done' : aiPassed === false ? 'failed' : 'pending',
                       },
                     ];
                     return steps.map((step) => (
                       <div
                         key={step.label}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '6px 0',
-                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' }}
                       >
                         <div
                           style={{
-                            width: '10px',
-                            height: '10px',
+                            width: '18px',
+                            height: '18px',
                             borderRadius: '50%',
                             background: step.state === 'done' ? '#2E7D32' : step.state === 'failed' ? '#C62828' : '#E0E4EA',
                             display: 'flex',
@@ -814,6 +807,11 @@ const DocumentDetailPage: React.FC = () => {
                             transition: 'background 0.2s',
                           }}
                         >
+                          {step.state !== 'pending' && (
+                            <span style={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}>
+                              {step.state === 'done' ? '✓' : '✕'}
+                            </span>
+                          )}
                         </div>
                         <span
                           style={{
@@ -827,47 +825,6 @@ const DocumentDetailPage: React.FC = () => {
                       </div>
                     ));
                   })()}
-                  {[
-                    { label: t.checklistUpload, done: !!selectedFile },
-                    { label: t.checklistAI, done: !!analysisResult },
-                  ].map((step) => (
-                    <div
-                      key={step.label}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '6px 0',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: step.done ? '#2E7D32' : '#E0E4EA',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'background 0.2s',
-                        }}
-                      >
-                        {step.done && (
-                          <span style={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}>✓</span>
-                        )}
-                      </div>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          color: step.done ? '#1A1D23' : '#9AA3AF',
-                          fontWeight: step.done ? 500 : 400,
-                        }}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

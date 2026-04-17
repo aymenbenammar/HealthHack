@@ -185,7 +185,7 @@ const DocumentsPage: React.FC = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Preparation Timeline
+                {t.tabPreparationTimeline}
               </button>
             </div>
 
@@ -193,8 +193,8 @@ const DocumentsPage: React.FC = () => {
             {activeTab === 'translations' ? (
               <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9AA3AF' }}>
                 <div style={{ fontSize: '36px', marginBottom: '12px' }}>📄</div>
-                <div style={{ fontSize: '16px', fontWeight: 600, color: '#5F6B7A', marginBottom: '6px' }}>No translations yet</div>
-                <div style={{ fontSize: '14px' }}>Upload documents and request certified translations here.</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: '#5F6B7A', marginBottom: '6px' }}>{t.noTranslations}</div>
+                <div style={{ fontSize: '14px' }}>{t.noTranslationsHint}</div>
               </div>
             ) : activeTab === 'timeline' ? (
               <div style={{ padding: '28px 24px' }}>
@@ -209,8 +209,8 @@ const DocumentsPage: React.FC = () => {
                           {phase}
                         </div>
                         <div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23' }}>{cfg.label}</div>
-                          <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '1px' }}>{cfg.sublabel}</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23' }}>{t[`phase${phase}Label` as keyof typeof t] as string}</div>
+                          <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '1px' }}>{t[`phase${phase}Sublabel` as keyof typeof t] as string}</div>
                         </div>
                       </div>
 
@@ -226,11 +226,12 @@ const DocumentsPage: React.FC = () => {
                           {phaseDocs.map((doc) => {
                             const prepWeeks = doc.prepTimeDays
                               ? doc.prepTimeDays >= 14
-                                ? `~${Math.round(doc.prepTimeDays / 7)}w`
-                                : doc.prepTimeDays === 1 ? '1 day' : `~${doc.prepTimeDays}d`
+                                ? `~${Math.round(doc.prepTimeDays / 7)} ${t.weeksUnit}`
+                                : doc.prepTimeDays === 1 ? `1 ${t.dayUnit}` : `~${doc.prepTimeDays} ${t.daysUnit}`
                               : null;
                             const subSt = getSubmissionStatus(doc.id);
                             const subStep = SUBMISSION_STEPS[stepIndex(subSt)];
+                            const subLabel = subSt === 'not_submitted' ? t.submissionNotSubmitted : subSt === 'submitted' ? t.submissionSubmitted : t.submissionDone;
                             return (
                               <div
                                 key={doc.id}
@@ -240,10 +241,10 @@ const DocumentsPage: React.FC = () => {
                                 onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
                               >
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', lineHeight: '1.4' }}>{doc.title}</div>
+                                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', lineHeight: '1.4' }}>{getTranslatedDocument(doc, lang).title}</div>
                                   <StatusBadge status={doc.status} />
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#9AA3AF', marginTop: '4px' }}>{doc.category.replace(/^[A-Z]\) /, '')}</div>
+                                <div style={{ fontSize: '11px', color: '#9AA3AF', marginTop: '4px' }}>{t[categoryTranslationKey[doc.category]] ?? doc.category.replace(/^[A-Z]\) /, '')}</div>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                                   {prepWeeks && (
                                     <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: cfg.bg, color: cfg.color }}>
@@ -252,19 +253,19 @@ const DocumentsPage: React.FC = () => {
                                   )}
                                   {doc.maxAgeDays != null && (
                                     <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#FFF8E1', color: '#E65100' }}>
-                                      valid {doc.maxAgeDays}d
+                                      {t.validForLabel} {doc.maxAgeDays} {t.daysUnit}
                                     </span>
                                   )}
                                   {(doc.dependencies ?? []).length > 0 && (
                                     <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: '#F0F2F5', color: '#5F6B7A' }}>
-                                      {doc.dependencies!.length} prereq{doc.dependencies!.length > 1 ? 's' : ''}
+                                      {doc.dependencies!.length} {doc.dependencies!.length > 1 ? t.prereqsLabel : t.prereqLabel}
                                     </span>
                                   )}
                                 </div>
                                 {/* Submission status strip */}
                                 <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F0F2F5', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: subStep.color, flexShrink: 0 }} />
-                                  <span style={{ fontSize: '11px', fontWeight: 600, color: subStep.color }}>{subStep.label}</span>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: subStep.color }}>{subLabel}</span>
                                 </div>
                               </div>
                             );

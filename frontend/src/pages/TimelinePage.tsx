@@ -6,6 +6,8 @@ import { documents, phaseConfig, getDocumentsByPhase } from '../data/documents';
 import { getSubmissionStatus, SUBMISSION_STEPS, stepIndex } from '../utils/submissionStatus';
 import { DocStatus } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
+import { categoryTranslationKey } from '../i18n/translations';
+import { getTranslatedDocument } from '../i18n/documentTranslations';
 
 const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
   const { t } = useLanguage();
@@ -38,7 +40,7 @@ const StatusBadge: React.FC<{ status: DocStatus }> = ({ status }) => {
 
 const TimelinePage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const totalDocs = documents.length;
 
@@ -53,10 +55,10 @@ const TimelinePage: React.FC = () => {
           {/* Page title */}
           <div style={{ marginBottom: '24px' }}>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1A1D23', marginBottom: '4px' }}>
-              Preparation Timeline
+              {t.tabPreparationTimeline}
             </h1>
             <p style={{ fontSize: '14px', color: '#5F6B7A' }}>
-              Your step-by-step roadmap to Approbation — organized by priority and preparation time.
+              {t.timelinePageSubtitle}
             </p>
           </div>
 
@@ -102,7 +104,7 @@ const TimelinePage: React.FC = () => {
                     {phase}
                   </div>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: cfg.color }}>
-                    {cfg.label}
+                    {t[`phase${phase}Label` as keyof typeof t] as string}
                   </span>
                 </div>
               );
@@ -149,10 +151,10 @@ const TimelinePage: React.FC = () => {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '16px', fontWeight: 700, color: '#1A1D23' }}>
-                      {cfg.label}
+                      {t[`phase${phase}Label` as keyof typeof t] as string}
                     </div>
                     <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '2px' }}>
-                      {cfg.sublabel}
+                      {t[`phase${phase}Sublabel` as keyof typeof t] as string}
                     </div>
                   </div>
                   <span
@@ -166,7 +168,7 @@ const TimelinePage: React.FC = () => {
                       border: `1px solid ${cfg.border}`,
                     }}
                   >
-                    {phaseDocs.length} doc{phaseDocs.length !== 1 ? 's' : ''}
+                    {phaseDocs.length} {phaseDocs.length !== 1 ? t.docsLabel : t.docLabel}
                   </span>
                 </div>
 
@@ -182,13 +184,14 @@ const TimelinePage: React.FC = () => {
                   {phaseDocs.map((doc) => {
                     const prepWeeks = doc.prepTimeDays
                       ? doc.prepTimeDays >= 14
-                        ? `~${Math.round(doc.prepTimeDays / 7)}w`
+                        ? `~${Math.round(doc.prepTimeDays / 7)} ${t.weeksUnit}`
                         : doc.prepTimeDays === 1
-                        ? '1 day'
-                        : `~${doc.prepTimeDays}d`
+                        ? `1 ${t.dayUnit}`
+                        : `~${doc.prepTimeDays} ${t.daysUnit}`
                       : null;
                     const subSt = getSubmissionStatus(doc.id);
                     const subStep = SUBMISSION_STEPS[stepIndex(subSt)];
+                    const subLabel = subSt === 'not_submitted' ? t.submissionNotSubmitted : subSt === 'submitted' ? t.submissionSubmitted : t.submissionDone;
 
                     return (
                       <div
@@ -230,13 +233,13 @@ const TimelinePage: React.FC = () => {
                               lineHeight: '1.4',
                             }}
                           >
-                            {doc.title}
+                            {getTranslatedDocument(doc, lang).title}
                           </div>
                           <StatusBadge status={doc.status} />
                         </div>
 
                         <div style={{ fontSize: '11px', color: '#9AA3AF', marginBottom: '8px' }}>
-                          {doc.category.replace(/^[A-Z]\) /, '')}
+                          {t[categoryTranslationKey[doc.category]] ?? doc.category.replace(/^[A-Z]\) /, '')}
                         </div>
 
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -265,7 +268,7 @@ const TimelinePage: React.FC = () => {
                                 color: '#E65100',
                               }}
                             >
-                              valid {doc.maxAgeDays}d
+                              {t.validForLabel} {doc.maxAgeDays} {t.daysUnit}
                             </span>
                           )}
                           {(doc.dependencies ?? []).length > 0 && (
@@ -279,8 +282,7 @@ const TimelinePage: React.FC = () => {
                                 color: '#5F6B7A',
                               }}
                             >
-                              {doc.dependencies!.length} prereq
-                              {doc.dependencies!.length > 1 ? 's' : ''}
+                              {doc.dependencies!.length} {doc.dependencies!.length > 1 ? t.prereqsLabel : t.prereqLabel}
                             </span>
                           )}
                         </div>
@@ -312,7 +314,7 @@ const TimelinePage: React.FC = () => {
                               color: subStep.color,
                             }}
                           >
-                            {subStep.label}
+                            {subLabel}
                           </span>
                         </div>
                       </div>

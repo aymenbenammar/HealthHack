@@ -4,6 +4,8 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { getDocumentById } from '../data/documents';
 import { learnGuidelines, GuidelinesResult, GuidelineAction } from '../api/learnGuidelines';
+import { useLanguage } from '../i18n/LanguageContext';
+import { getTranslatedDocument } from '../i18n/documentTranslations';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ const ChecklistItem: React.FC<{
   checked: boolean;
   onToggle: () => void;
 }> = ({ action, index, checked, onToggle }) => {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const hasDetails = action.what_it_means || action.where_to_find_it || action.what_to_prepare;
 
@@ -182,7 +185,7 @@ const ChecklistItem: React.FC<{
               {action.what_it_means && (
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1', marginBottom: '3px' }}>
-                    What it means
+                    {t.guideWhatItMeans}
                   </div>
                   <p style={{ fontSize: '13px', color: '#5F6B7A', lineHeight: '1.5', margin: 0 }}>
                     {action.what_it_means}
@@ -192,7 +195,7 @@ const ChecklistItem: React.FC<{
               {action.where_to_find_it && (
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1', marginBottom: '3px' }}>
-                    Where to find it
+                    {t.guideWhereToFind}
                   </div>
                   <p style={{ fontSize: '13px', color: '#5F6B7A', lineHeight: '1.5', margin: 0 }}>
                     {action.where_to_find_it}
@@ -210,7 +213,7 @@ const ChecklistItem: React.FC<{
                     color: '#1557B0',
                   }}
                 >
-                  <strong>Prepare:</strong> {action.what_to_prepare}
+                  <strong>{t.guidePrepare}</strong> {action.what_to_prepare}
                 </div>
               )}
             </div>
@@ -228,6 +231,7 @@ const LANGUAGES = ['English', 'German', 'Spanish', 'French'];
 const DocumentGuidelinesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t, lang } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload state
@@ -310,9 +314,9 @@ const DocumentGuidelinesPage: React.FC = () => {
         <div style={{ marginLeft: '260px', flex: 1 }}>
           <Header />
           <main style={{ marginTop: '60px', padding: '40px 32px', textAlign: 'center' }}>
-            <h2 style={{ color: '#1A1D23', marginBottom: '8px' }}>Document Not Found</h2>
+            <h2 style={{ color: '#1A1D23', marginBottom: '8px' }}>{t.docNotFound}</h2>
             <button onClick={() => navigate('/documents')} style={{ padding: '10px 20px', background: '#85CAE2', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-              Back to Documents
+              {t.backToDocuments}
             </button>
           </main>
         </div>
@@ -356,7 +360,7 @@ const DocumentGuidelinesPage: React.FC = () => {
               }}
             >
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#1A1D23', whiteSpace: 'nowrap' }}>
-                {completedItems} / {totalItems} steps
+                {completedItems} / {totalItems} {t.guideStepsLabel}
               </span>
               <div
                 style={{
@@ -411,7 +415,7 @@ const DocumentGuidelinesPage: React.FC = () => {
               }}
             >
               <BackIcon />
-              Back to {doc.title}
+              {t.guideBackTo} {getTranslatedDocument(doc, lang).title}
             </button>
 
             {/* ── SETUP SCREEN (before guide generated) ── */}
@@ -421,14 +425,14 @@ const DocumentGuidelinesPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1A1D23', marginBottom: '4px' }}>
-                      How to Fill: {doc.title}
+                      {t.guideHowToFill} {getTranslatedDocument(doc, lang).title}
                     </h1>
                     <p style={{ fontSize: '14px', color: '#5F6B7A' }}>
-                      Upload the empty form and get a step-by-step guide for every page.
+                      {t.guideSubtitle}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', color: '#5F6B7A', fontWeight: 500 }}>Explain in:</span>
+                    <span style={{ fontSize: '13px', color: '#5F6B7A', fontWeight: 500 }}>{t.guideExplainIn}</span>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {LANGUAGES.map((lang) => (
                         <button
@@ -470,10 +474,10 @@ const DocumentGuidelinesPage: React.FC = () => {
                   >
                     <div style={{ fontSize: '44px', marginBottom: '12px' }}>📋</div>
                     <p style={{ fontSize: '16px', fontWeight: 600, color: '#1A1D23', marginBottom: '6px' }}>
-                      Upload the empty form
+                      {t.guideUploadForm}
                     </p>
                     <p style={{ fontSize: '14px', color: '#5F6B7A', marginBottom: '20px' }}>
-                      Drag & drop a PDF or image, or click to browse
+                      {t.guideDragDrop}
                     </p>
                     <input ref={fileInputRef} type="file" accept={doc.acceptedFormats.join(',')} onChange={handleFileChange} style={{ display: 'none' }} />
                     <button
@@ -494,7 +498,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                       }}
                     >
                       <UploadIcon />
-                      Choose File
+                      {t.guideChooseFile}
                     </button>
                   </div>
                 ) : (
@@ -515,7 +519,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23' }}>{selectedFile.name}</div>
                       <div style={{ fontSize: '13px', color: '#9AA3AF', marginTop: '2px' }}>
-                        Ready to generate guide in <strong>{language}</strong>
+                        {t.guideReadyToGenerate} <strong>{language}</strong>
                       </div>
                     </div>
 
@@ -535,7 +539,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                         >
                           <SpinnerIcon />
                         </div>
-                        <div style={{ fontSize: '14px', color: '#5F6B7A', fontWeight: 500 }}>Analyzing document…</div>
+                        <div style={{ fontSize: '14px', color: '#5F6B7A', fontWeight: 500 }}>{t.guideAnalyzing}</div>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: '10px' }}>
@@ -556,7 +560,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                             boxShadow: '0 3px 10px rgba(247,157,37,0.35)',
                           }}
                         >
-                          ✨ Generate Guide
+                          ✨ {t.guideGenerateBtn}
                         </button>
                         <button
                           onClick={() => { setSelectedFile(null); setError(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
@@ -570,7 +574,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                             cursor: 'pointer',
                           }}
                         >
-                          Change file
+                          {t.guideChangeFile}
                         </button>
                       </div>
                     )}
@@ -620,15 +624,15 @@ const DocumentGuidelinesPage: React.FC = () => {
                     }}
                   >
                     <ChevronLeftIcon />
-                    Previous
+                    {t.guidePrevious}
                   </button>
 
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: '#1A1D23' }}>
-                      Page {currentPage.page} of {totalPages}
+                      {t.guidePage} {currentPage.page} {t.guideOf} {totalPages}
                     </div>
                     <div style={{ fontSize: '12px', color: '#9AA3AF', marginTop: '1px' }}>
-                      {currentPage.actions.length} step{currentPage.actions.length !== 1 ? 's' : ''} on this page
+                      {currentPage.actions.length} {t.guideStepsOnPage}
                     </div>
                   </div>
 
@@ -649,7 +653,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                       cursor: currentPageIdx === totalPages - 1 ? 'default' : 'pointer',
                     }}
                   >
-                    Next
+                    {t.guideNext}
                     <ChevronRightIcon />
                   </button>
                 </div>
@@ -688,10 +692,10 @@ const DocumentGuidelinesPage: React.FC = () => {
                       }}
                     >
                       <div style={{ fontSize: '12px', fontWeight: 700, color: '#85CAE2', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                        Page {currentPage.page} checklist
+                        {t.guidePage} {currentPage.page} {t.guidePageChecklist}
                       </div>
                       <div style={{ fontSize: '13px', color: '#5F6B7A' }}>
-                        {currentPage.actions.filter((_, i) => checked.has(`${currentPageIdx}-${i}`)).length} of {currentPage.actions.length} done on this page
+                        {currentPage.actions.filter((_, i) => checked.has(`${currentPageIdx}-${i}`)).length} {t.guideOf} {currentPage.actions.length} {t.guideDoneOnPage}
                       </div>
                     </div>
 
@@ -709,7 +713,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                           fontStyle: 'italic',
                         }}
                       >
-                        No action required on this page.
+                        {t.guideNoAction}
                       </div>
                     ) : (
                       currentPage.actions.map((action, i) => (
@@ -744,7 +748,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                             gap: '4px',
                           }}
                         >
-                          <ChevronLeftIcon /> Prev page
+                          <ChevronLeftIcon /> {t.guidePrevPage}
                         </button>
                       )}
                       {currentPageIdx < totalPages - 1 && (
@@ -766,7 +770,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                             gap: '4px',
                           }}
                         >
-                          Next page <ChevronRightIcon />
+                          {t.guideNextPage} <ChevronRightIcon />
                         </button>
                       )}
                     </div>
@@ -785,7 +789,7 @@ const DocumentGuidelinesPage: React.FC = () => {
                         cursor: 'pointer',
                       }}
                     >
-                      Upload a different file
+                      {t.guideDifferentFile}
                     </button>
                   </div>
                 </div>
